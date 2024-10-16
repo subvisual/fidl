@@ -10,9 +10,14 @@ import (
 type CLI struct {
 }
 
+type Wallet struct {
+	// TODO
+}
+
 type Config struct {
-	Env string `toml:"env"`
-	CLI CLI    `toml:"fidl-cli"`
+	Env    string `toml:"env"`
+	CLI    CLI    `toml:"fidl-cli"`
+	Wallet Wallet `toml:"wallet-cli"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

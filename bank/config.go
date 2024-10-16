@@ -30,11 +30,16 @@ type Bank struct {
 	TLS             bool   `toml:"tls"`
 }
 
+type Wallet struct {
+	// TODO
+}
+
 type Config struct {
 	Env    string `toml:"env"`
 	Logger Logger `toml:"logger"`
 	Db     Db     `toml:"database"`
 	Bank   Bank   `toml:"fidl-bank"`
+	Wallet Wallet `toml:"wallet-bank"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

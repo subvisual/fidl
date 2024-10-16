@@ -23,10 +23,15 @@ type Proxy struct {
 	TLS             bool   `toml:"tls"`
 }
 
+type Wallet struct {
+	// TODO
+}
+
 type Config struct {
 	Env    string `toml:"env"`
 	Logger Logger `toml:"logger"`
 	Proxy  Proxy  `toml:"fidl-proxy"`
+	Wallet Wallet `toml:"wallet-proxy"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

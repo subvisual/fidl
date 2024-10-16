@@ -10,6 +10,6 @@ CREATE TABLE IF NOT EXISTS
     updated_at timestamp(0) NOT NULL DEFAULT (NOW() at time zone ('utc'))
   );
 
-CREATE UNIQUE INDEX storage_provider_idx ON storage_provider (sp_id);
+CREATE UNIQUE INDEX storage_provider_idx ON storage_provider (sp_id, wallet_address);
 
 COMMIT;
