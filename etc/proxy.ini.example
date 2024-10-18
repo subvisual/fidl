@@ -1,0 +1,17 @@
+env="development"
+
+[logger]
+level="DEBUG"
+path="logs/proxy.log"
+
+[http]
+address="127.0.0.1"
+fqdn="localhost"
+listen-port=4000
+port=4000
+read-timeout=15
+write-timeout=15
+shutdown-timeout=10
+tls=false
+
+[wallet]

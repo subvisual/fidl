@@ -5,33 +5,17 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/subvisual/fidl/http"
 )
 
-type Logger struct {
-	Level string `toml:"level"`
-	Path  string `toml:"proxy-path"`
-}
-
-type Proxy struct {
-	Addr            string `toml:"address"`
-	Fqdn            string `toml:"fqdn"`
-	Port            int    `toml:"port"`
-	ListenPort      int    `toml:"listen-port"`
-	ReadTimeout     int    `toml:"read-timeout"`
-	WriteTimeout    int    `toml:"write-timeout"`
-	ShutdownTimeout int    `toml:"shutdown-timeout"`
-	TLS             bool   `toml:"tls"`
-}
-
 type Wallet struct {
-	// TODO
 }
 
 type Config struct {
-	Env    string `toml:"env"`
-	Logger Logger `toml:"logger"`
-	Proxy  Proxy  `toml:"fidl-proxy"`
-	Wallet Wallet `toml:"wallet-proxy"`
+	Env    string      `toml:"env"`
+	Logger http.Logger `toml:"logger"`
+	HTTP   http.HTTP   `toml:"http"`
+	Wallet Wallet      `toml:"wallet"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

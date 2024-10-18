@@ -1,4 +1,4 @@
-package bank
+package proxy
 
 import (
 	"github.com/subvisual/fidl/http"
@@ -6,9 +6,4 @@ import (
 
 type Server struct {
 	*http.Server
-
-	BankService Service
-}
-
-type Service interface {
 }

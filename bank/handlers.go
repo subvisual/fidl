@@ -1,4 +1,4 @@
-package http
+package bank
 
 import (
 	"net/http"
@@ -6,7 +6,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (s *Server) registerBankRoutes(r chi.Router) {
+type envelope map[string]any
+
+func (s *Server) Routes(r chi.Router) {
 	r.Post("/register", s.handleRegisterProxy)
 	r.Post("/deposit", s.handleDeposit)
 	r.Post("/withdraw", s.handleWithdraw)

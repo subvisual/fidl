@@ -28,7 +28,7 @@ func main() {
 	fidl.Commit = commit
 
 	var cfgFilePath string
-	flag.StringVar(&cfgFilePath, "config", "etc/fidl.config", "path to configuration file")
+	flag.StringVar(&cfgFilePath, "config", "etc/proxy.ini", "path to configuration file")
 	flag.Parse()
 
 	cfg := proxy.LoadConfiguration(cfgFilePath)
@@ -59,30 +59,33 @@ func main() {
 	zap.ReplaceGlobals(logger)
 
 	httpServer := http.New(&http.Config{
-		Addr:            cfg.Proxy.Addr,
-		Fqdn:            cfg.Proxy.Fqdn,
-		Port:            cfg.Proxy.Port,
-		ListenPort:      cfg.Proxy.ListenPort,
-		ReadTimeout:     cfg.Proxy.ReadTimeout,
-		WriteTimeout:    cfg.Proxy.WriteTimeout,
-		ShutdownTimeout: cfg.Proxy.ShutdownTimeout,
+		Addr:            cfg.HTTP.Addr,
+		Fqdn:            cfg.HTTP.Fqdn,
+		Port:            cfg.HTTP.Port,
+		ListenPort:      cfg.HTTP.ListenPort,
+		ReadTimeout:     cfg.HTTP.ReadTimeout,
+		WriteTimeout:    cfg.HTTP.WriteTimeout,
+		ShutdownTimeout: cfg.HTTP.ShutdownTimeout,
 
-		TLS: cfg.Proxy.TLS,
+		TLS: cfg.HTTP.TLS,
 		Env: cfg.Env,
 	})
 
+	proxyCtx := proxy.Server{Server: httpServer}
+	proxyCtx.RegisterValidators()
+
 	httpServer.Log = logger
+	httpServer.RegisterMiddleWare()
+	httpServer.RegisterRoutes(proxyCtx.Routes)
 
-	httpServer.RegisterValidator()
-
-	if err := httpServer.RunProxy(); err != nil {
+	if err := httpServer.Run(); err != nil {
 		logger.Fatal("failed to start http server", zap.Error(err))
 	}
 
 	// nolint
 	defer logger.Sync()
 
-	logger.Info("Server started", zap.String("addr", cfg.Proxy.Addr), zap.Int("port", cfg.Proxy.ListenPort))
+	logger.Info("Server started", zap.String("addr", cfg.HTTP.Addr), zap.Int("port", cfg.HTTP.ListenPort))
 
 	<-ctx.Done()
 

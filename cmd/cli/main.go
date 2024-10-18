@@ -22,7 +22,7 @@ func main() {
 	fidl.Commit = commit
 
 	var cfgFilePath string
-	flag.StringVar(&cfgFilePath, "config", "etc/fidl.config", "path to configuration file")
+	flag.StringVar(&cfgFilePath, "config", "etc/cli.ini", "path to configuration file")
 	flag.Parse()
 
 	cfg := cli.LoadConfiguration(cfgFilePath)
@@ -35,7 +35,7 @@ func main() {
 	/*
 		CLI stuff
 	*/
-	fmt.Println(cfg)
+	fmt.Println(cfg) // no err
 
 	<-ctx.Done()
 }
