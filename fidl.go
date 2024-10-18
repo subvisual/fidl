@@ -6,3 +6,5 @@ var (
 	//nolint
 	Commit string
 )
+
+type FIL float64
