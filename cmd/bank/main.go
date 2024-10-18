@@ -29,7 +29,7 @@ func main() {
 	fidl.Commit = commit
 
 	var cfgFilePath string
-	flag.StringVar(&cfgFilePath, "config", "etc/fidl.config", "path to configuration file")
+	flag.StringVar(&cfgFilePath, "config", "etc/bank.ini", "path to configuration file")
 	flag.Parse()
 
 	cfg := bank.LoadConfiguration(cfgFilePath)
@@ -66,39 +66,41 @@ func main() {
 		MaxIdleTime:  cfg.Db.MaxIdleTime,
 	})
 
-	httpBankServer := http.New(&http.Config{
-		Addr:            cfg.Bank.Addr,
-		Fqdn:            cfg.Bank.Fqdn,
-		Port:            cfg.Bank.Port,
-		ListenPort:      cfg.Bank.ListenPort,
-		ReadTimeout:     cfg.Bank.ReadTimeout,
-		WriteTimeout:    cfg.Bank.WriteTimeout,
-		ShutdownTimeout: cfg.Bank.ShutdownTimeout,
+	httpServer := http.New(&http.Config{
+		Addr:            cfg.HTTP.Addr,
+		Fqdn:            cfg.HTTP.Fqdn,
+		Port:            cfg.HTTP.Port,
+		ListenPort:      cfg.HTTP.ListenPort,
+		ReadTimeout:     cfg.HTTP.ReadTimeout,
+		WriteTimeout:    cfg.HTTP.WriteTimeout,
+		ShutdownTimeout: cfg.HTTP.ShutdownTimeout,
 
-		TLS: cfg.Bank.TLS,
+		TLS: cfg.HTTP.TLS,
 		Env: cfg.Env,
 	})
 
-	httpBankServer.BankService = postgres.NewBankService(db)
+	bankCtx := bank.Server{Server: httpServer}
+	bankCtx.BankService = postgres.NewBankService(db)
+	bankCtx.RegisterValidators()
 
-	httpBankServer.Log = logger
+	httpServer.Log = logger
+	httpServer.RegisterMiddleWare()
+	httpServer.RegisterRoutes(bankCtx.Routes)
 
-	httpBankServer.RegisterValidator()
-
-	if err := httpBankServer.RunBank(); err != nil {
+	if err := httpServer.Run(); err != nil {
 		logger.Fatal("failed to start http server", zap.Error(err))
 	}
 
 	// nolint
 	defer logger.Sync()
 
-	logger.Info("Server started", zap.String("addr", cfg.Bank.Addr), zap.Int("port", cfg.Bank.ListenPort))
+	logger.Info("Server started", zap.String("addr", cfg.HTTP.Addr), zap.Int("port", cfg.HTTP.ListenPort))
 
 	<-ctx.Done()
 
 	logger.Info("Terminating...")
 
-	if err := httpBankServer.Close(); err != nil {
+	if err := httpServer.Close(); err != nil {
 		logger.Fatal("Error closing server connections", zap.Error(err))
 	}
 }

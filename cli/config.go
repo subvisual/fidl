@@ -16,8 +16,8 @@ type Wallet struct {
 
 type Config struct {
 	Env    string `toml:"env"`
-	CLI    CLI    `toml:"fidl-cli"`
-	Wallet Wallet `toml:"wallet-cli"`
+	CLI    CLI    `toml:"cli"`
+	Wallet Wallet `toml:"wallet"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

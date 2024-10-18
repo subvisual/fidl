@@ -5,12 +5,8 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/subvisual/fidl/http"
 )
-
-type Logger struct {
-	Level string `toml:"level"`
-	Path  string `toml:"bank-path"`
-}
 
 type Db struct {
 	Dsn          string `toml:"dsn"`
@@ -19,27 +15,15 @@ type Db struct {
 	MaxIdleTime  string `toml:"max-idle-time"`
 }
 
-type Bank struct {
-	Addr            string `toml:"address"`
-	Fqdn            string `toml:"fqdn"`
-	Port            int    `toml:"port"`
-	ListenPort      int    `toml:"listen-port"`
-	ReadTimeout     int    `toml:"read-timeout"`
-	WriteTimeout    int    `toml:"write-timeout"`
-	ShutdownTimeout int    `toml:"shutdown-timeout"`
-	TLS             bool   `toml:"tls"`
-}
-
 type Wallet struct {
-	// TODO
 }
 
 type Config struct {
-	Env    string `toml:"env"`
-	Logger Logger `toml:"logger"`
-	Db     Db     `toml:"database"`
-	Bank   Bank   `toml:"fidl-bank"`
-	Wallet Wallet `toml:"wallet-bank"`
+	Env    string      `toml:"env"`
+	Logger http.Logger `toml:"logger"`
+	Db     Db          `toml:"database"`
+	HTTP   http.HTTP   `toml:"http"`
+	Wallet Wallet      `toml:"wallet"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {
