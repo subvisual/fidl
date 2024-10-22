@@ -18,9 +18,6 @@ FIDL is an on-going development project consisting in three different components
     * [Migrations](#migrations): postgres database
 * [Proxy](#proxy): http server to be installed on storage providers, to bridge the communication between clients and the service/bank
 
-Simple sequential diagram for a retrieval request:
-![retrieval diagram](docs/img/retrieval_diagram.png)
-
 Example of configuration files for each component on the folder `etc`.
 
 ## CLI
