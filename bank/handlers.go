@@ -11,7 +11,7 @@ type envelope map[string]any
 
 func (s *Server) Routes(r chi.Router) {
 	r.Route("/", func(r chi.Router) {
-		r.Use(AuthorizationCtx())
+		r.Use(AuthenticationCtx())
 		r.Post("/register", s.handleRegisterProxy)
 		r.Post("/deposit", s.handleDeposit)
 		r.Post("/withdraw", s.handleWithdraw)

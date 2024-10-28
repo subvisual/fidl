@@ -10,20 +10,13 @@ import (
 type ctxKey int
 
 const (
-	CtxKeySignature ctxKey = iota
-	CtxKeyAddress
+	CtxKeyAddress ctxKey = iota
 )
 
-func AuthorizationCtx() func(http.Handler) http.Handler {
+func AuthenticationCtx() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			sig, pub, msg, err := ParseHeader(r)
-			if err != nil {
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
-			}
-
-			addr, err := crypto.Address(sig.Type, pub)
+			sig, addr, msg, err := ParseHeader(r)
 			if err != nil {
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 				return
@@ -35,7 +28,6 @@ func AuthorizationCtx() func(http.Handler) http.Handler {
 			}
 
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, CtxKeySignature, sig)
 			ctx = context.WithValue(ctx, CtxKeyAddress, addr)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
