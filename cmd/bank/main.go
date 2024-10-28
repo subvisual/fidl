@@ -86,7 +86,7 @@ func main() {
 	bankCtx.RegisterValidators()
 
 	httpServer.Log = logger
-	httpServer.RegisterMiddleWare(bank.AuthorizationCtx())
+	httpServer.RegisterMiddleWare(bank.AuthenticationCtx())
 	httpServer.RegisterRoutes(bankCtx.Routes)
 
 	if err := httpServer.Run(); err != nil {
