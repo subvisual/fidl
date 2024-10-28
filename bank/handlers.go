@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/subvisual/fidl"
-	fidlhttp "github.com/subvisual/fidl/http"
 )
 
 type envelope map[string]any
@@ -26,12 +25,12 @@ func (s *Server) Routes(r chi.Router) {
 func (s *Server) handleRegisterProxy(w http.ResponseWriter, r *http.Request) {
 	var params RegisterProxyParams
 
-	if err := fidlhttp.DecodeJSON(w, r, &params); err != nil {
+	if err := s.HTTP.DecodeJSON(w, r, &params); err != nil {
 		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
 		return
 	}
 
-	if err := s.Validate.Struct(params); err != nil {
+	if err := s.HTTP.Validate.Struct(params); err != nil {
 		s.JSON(w, r, http.StatusUnprocessableEntity, err)
 		return
 	}
@@ -46,18 +45,18 @@ func (s *Server) handleRegisterProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"proxy": "registered"})
+	s.JSON(w, r, http.StatusOK, envelope{"bank": "proxy registered"})
 }
 
-func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request, transactionFn func(signature string, amount fidl.FIL) (fidl.FIL, error)) {
+func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request, transactionFn func(address string, amount fidl.FIL) (fidl.FIL, error)) {
 	var params TransactionParams
 
-	if err := fidlhttp.DecodeJSON(w, r, &params); err != nil {
+	if err := s.HTTP.DecodeJSON(w, r, &params); err != nil {
 		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
 		return
 	}
 
-	if err := s.Validate.Struct(params); err != nil {
+	if err := s.HTTP.Validate.Struct(params); err != nil {
 		s.JSON(w, r, http.StatusUnprocessableEntity, err)
 		return
 	}
@@ -78,12 +77,12 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request, trans
 func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {
 	var params BalanceParams
 
-	if err := fidlhttp.DecodeJSON(w, r, &params); err != nil {
+	if err := s.HTTP.DecodeJSON(w, r, &params); err != nil {
 		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
 		return
 	}
 
-	if err := s.Validate.Struct(params); err != nil {
+	if err := s.HTTP.Validate.Struct(params); err != nil {
 		s.JSON(w, r, http.StatusUnprocessableEntity, err)
 		return
 	}
