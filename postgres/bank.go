@@ -155,8 +155,12 @@ func (s BankService) Deposit(address string, amount fidl.FIL) (fidl.FIL, error) 
 	return balance, nil
 }
 
-func (s BankService) Withdraw(address string, amount fidl.FIL) (fidl.FIL, error) {
+func (s BankService) Withdraw(address string, destination string, amount fidl.FIL) (fidl.FIL, error) {
 	var funds fidl.FIL
+
+	if destination == s.cfg.WalletAddress {
+		return -1.0, bank.ErrTransactionNotAllowed
+	}
 
 	transactionQuery :=
 		`
@@ -215,7 +219,7 @@ func (s BankService) Withdraw(address string, amount fidl.FIL) (fidl.FIL, error)
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, address, amount, bank.TransactionCompleted}
+		args = []any{s.cfg.WalletAddress, destination, amount, bank.TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
 		}

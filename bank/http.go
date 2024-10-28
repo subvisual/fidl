@@ -3,8 +3,10 @@ package bank
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
+	"github.com/filecoin-project/venus/pkg/crypto"
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http/jsend"
 )
@@ -38,4 +40,32 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		s.HTTP.LogError(r, err)
 	}
+}
+
+func ParseHeader(r *http.Request) (*crypto.Signature, []byte, string, error) {
+	dataSig := []byte(r.Header.Get("sig"))
+	dataPub := []byte(r.Header.Get("pub"))
+	dataMsg := []byte(r.Header.Get("msg"))
+
+	var str string
+	if err := json.Unmarshal(dataSig, &str); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to parse signature from header: %w", err)
+	}
+
+	var sig crypto.Signature
+	if err := json.Unmarshal([]byte(str), &sig); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to parse signature from header: %w", err)
+	}
+
+	var pub []byte
+	if err := json.Unmarshal(dataPub, &pub); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to parse public key from header: %w", err)
+	}
+
+	var msg string
+	if err := json.Unmarshal(dataMsg, &msg); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to parse message from header: %w", err)
+	}
+
+	return &sig, pub, msg, nil
 }
