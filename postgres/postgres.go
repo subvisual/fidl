@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/subvisual/fidl"
 )
 
 type Config struct {
@@ -37,4 +38,29 @@ func Connect(cfg Config) *DB {
 	db.SetConnMaxIdleTime(duration)
 
 	return db
+}
+
+func Transaction(db *DB, fn func(fidl.Queryable) error) (err error) {
+	tx, err := db.Beginx()
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		p := recover()
+
+		switch {
+		case p != nil:
+			_ = tx.Rollback()
+			panic(p)
+		case err != nil:
+			_ = tx.Rollback()
+		default:
+			err = tx.Commit()
+		}
+	}()
+
+	err = fn(tx)
+
+	return err
 }

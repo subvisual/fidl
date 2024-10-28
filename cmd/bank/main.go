@@ -79,8 +79,10 @@ func main() {
 		Env: cfg.Env,
 	})
 
-	bankCtx := bank.Server{Server: httpServer}
-	bankCtx.BankService = postgres.NewBankService(db)
+	bankCtx := bank.Server{HTTP: httpServer}
+	bankCtx.BankService = postgres.NewBankService(db, &postgres.BankConfig{
+		WalletAddress: cfg.Wallet.Address,
+	})
 	bankCtx.RegisterValidators()
 
 	httpServer.Log = logger

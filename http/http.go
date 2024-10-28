@@ -80,7 +80,7 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 	}
 }
 
-func DecodeJSON(w http.ResponseWriter, r *http.Request, destination any) error {
+func (s *Server) DecodeJSON(w http.ResponseWriter, r *http.Request, destination any) error {
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 	decoder := json.NewDecoder(r.Body)
