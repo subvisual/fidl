@@ -82,27 +82,31 @@ type Server struct {
 	BankService Service
 }
 
-type RegisterProxyParams struct {
-	SpID      string   `validate:"required"`
-	Signature string   `validate:"required"`
-	PublicKey string   `validate:"required"`
-	Price     fidl.FIL `validate:"required,gt=0.0"`
+type RegisterParams struct {
+	ID    string   `validate:"required" json:"id"`
+	Price fidl.FIL `validate:"required" json:"price"`
 }
 
-type TransactionParams struct {
-	Signature string   `validate:"required"`
-	PublicKey string   `validate:"required"`
-	Amount    fidl.FIL `validate:"required,gt=0.0"`
+type DepositParams struct {
+	Amount fidl.FIL `validate:"required" json:"amount"`
 }
 
-type BalanceParams struct {
-	Signature string `validate:"required"`
-	PublicKey string `validate:"required"`
+type WithdrawParams struct {
+	Amount      fidl.FIL `validate:"required" json:"amount"`
+	Destination string   `validate:"required" json:"dst"`
+}
+
+type AuthorizeParams struct {
+	/* TODO */
+}
+
+type RedeemParams struct {
+	/* TODO */
 }
 
 type Service interface {
 	RegisterProxy(spid string, source string, price fidl.FIL) error
 	Deposit(address string, price fidl.FIL) (fidl.FIL, error)
-	Withdraw(address string, price fidl.FIL) (fidl.FIL, error)
+	Withdraw(address string, destination string, price fidl.FIL) (fidl.FIL, error)
 	Balance(address string) (fidl.FIL, error)
 }

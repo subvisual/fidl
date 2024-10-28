@@ -16,7 +16,7 @@ type Db struct {
 }
 
 type Wallet struct {
-	Address string `toml:"public-key"`
+	Address string `toml:"address"`
 }
 
 type Config struct {
