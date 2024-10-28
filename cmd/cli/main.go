@@ -1,14 +1,11 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"fmt"
-	"os"
-	"os/signal"
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/cli"
+	"github.com/subvisual/fidl/cli/commands"
 )
 
 // nolint
@@ -27,15 +24,6 @@ func main() {
 
 	cfg := cli.LoadConfiguration(cfgFilePath)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() { <-c; cancel() }()
-
-	/*
-		CLI stuff
-	*/
-	fmt.Println(cfg) // no err
-
-	<-ctx.Done()
+	c := commands.Parse(cfg.CLI.BankAddress)
+	_ = c.Execute()
 }

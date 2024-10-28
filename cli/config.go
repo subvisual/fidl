@@ -8,10 +8,10 @@ import (
 )
 
 type CLI struct {
+	BankAddress string `toml:"bank-address"`
 }
 
 type Wallet struct {
-	// TODO
 }
 
 type Config struct {
