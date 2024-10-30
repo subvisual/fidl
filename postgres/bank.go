@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
@@ -69,7 +70,7 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price fidl
 			return fmt.Errorf("failed to add balances entry: %w", err)
 		}
 
-		args = []any{accountID, spid, price}
+		args = []any{accountID, spid, price.Int.String()}
 		if _, err := tx.Exec(spQuery, args...); err != nil {
 			return fmt.Errorf("failed to add storage provider entry: %w", err)
 		}
@@ -83,7 +84,7 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price fidl
 	return nil
 }
 
-func (s BankService) Deposit(address string, amount fidl.FIL) (fidl.FIL, error) {
+func (s BankService) Deposit(address string, amount fidl.FIL) (*fidl.FIL, error) {
 	var balance fidl.FIL
 
 	insertAccountQuery :=
@@ -136,12 +137,12 @@ func (s BankService) Deposit(address string, amount fidl.FIL) (fidl.FIL, error) 
 			return fmt.Errorf("failed to add client entry: %w", err)
 		}
 
-		args = []any{account.ID, amount}
+		args = []any{account.ID, amount.Int.String()}
 		if err := tx.QueryRow(depositQuery, args...).Scan(&balance); err != nil {
 			return fmt.Errorf("failed to deposit balance: %w", err)
 		}
 
-		args = []any{address, s.cfg.WalletAddress, amount, bank.TransactionCompleted}
+		args = []any{address, s.cfg.WalletAddress, amount.Int.String(), bank.TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during deposit: %w", err)
 		}
@@ -149,17 +150,17 @@ func (s BankService) Deposit(address string, amount fidl.FIL) (fidl.FIL, error) 
 		return nil
 	})
 	if err != nil {
-		return -1.0, err
+		return nil, err
 	}
 
-	return balance, nil
+	return &balance, nil
 }
 
-func (s BankService) Withdraw(address string, destination string, amount fidl.FIL) (fidl.FIL, error) {
-	var funds fidl.FIL
+func (s BankService) Withdraw(address string, destination string, amount fidl.FIL) (*fidl.FIL, error) {
+	var balance *fidl.FIL
 
 	if destination == s.cfg.WalletAddress {
-		return -1.0, bank.ErrTransactionNotAllowed
+		return nil, bank.ErrTransactionNotAllowed
 	}
 
 	transactionQuery :=
@@ -205,26 +206,31 @@ func (s BankService) Withdraw(address string, destination string, amount fidl.FI
 			}
 		}
 
-		balance, err := s.Balance(address)
+		balance, err = s.Balance(address)
 		if err != nil {
 			return err
 		}
 
-		if amount > balance {
+		if amount.Cmp(balance.Int) == 1 {
 			return bank.ErrInsufficientFunds
 		}
 
-		args := []any{account.ID, amount}
-		if err := tx.QueryRow(withdrawQuery, args...).Scan(&funds); err != nil {
+		args := []any{account.ID, amount.Int.String()}
+		if err := tx.QueryRow(withdrawQuery, args...).Scan(&balance); err != nil {
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, destination, amount, bank.TransactionCompleted}
+		args = []any{s.cfg.WalletAddress, destination, amount.Int.String(), bank.TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
 		}
 
-		if funds == 0.0 && account.Type == bank.Client {
+		zero, ok := new(big.Int).SetString("0", 10)
+		if !ok {
+			return fmt.Errorf("failed to set zero big int")
+		}
+
+		if balance.Cmp(zero) == 0 && account.Type == bank.Client {
 			if _, err := tx.Exec(deleteQuery, account.ID); err != nil {
 				return fmt.Errorf("failed to delete rows during withdraw balance: %w", err)
 			}
@@ -233,13 +239,13 @@ func (s BankService) Withdraw(address string, destination string, amount fidl.FI
 		return nil
 	})
 	if err != nil {
-		return -1.0, err
+		return nil, err
 	}
 
-	return funds, nil
+	return balance, nil
 }
 
-func (s BankService) Balance(address string) (fidl.FIL, error) {
+func (s BankService) Balance(address string) (*fidl.FIL, error) {
 	var balance fidl.FIL
 
 	query :=
@@ -260,19 +266,19 @@ func (s BankService) Balance(address string) (fidl.FIL, error) {
 		return nil
 	})
 	if err != nil {
-		return -1.0, err
+		return nil, err
 	}
 
-	return balance, nil
+	return &balance, nil
 }
 
 func (s BankService) BalanceStatus(id int64) (bank.BalanceStatus, error) {
-	var balance bank.BalanceStatus
+	var status bank.BalanceStatus
 
 	query := `SELECT status_id FROM clients WHERE id = $1`
-	if err := s.db.Get(&balance, query, id); err != nil {
+	if err := s.db.Get(&status, query, id); err != nil {
 		return -1.0, fmt.Errorf("failed to balance status by account id: %w", err)
 	}
 
-	return balance, nil
+	return status, nil
 }
