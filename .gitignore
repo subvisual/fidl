@@ -23,6 +23,7 @@
 !postgres/migrations/*
 
 !etc/*.ini.example
+!etc/*.key.example
 
 # !Makefile
 

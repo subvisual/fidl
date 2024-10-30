@@ -13,6 +13,7 @@ import (
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http"
 	"github.com/subvisual/fidl/proxy"
+	"github.com/subvisual/fidl/proxy/request"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -86,6 +87,10 @@ func main() {
 	defer logger.Sync()
 
 	logger.Info("Server started", zap.String("addr", cfg.HTTP.Addr), zap.Int("port", cfg.HTTP.ListenPort))
+
+	if err := request.Register(cfg); err != nil {
+		logger.Fatal("Failed to register", zap.Error(err))
+	}
 
 	<-ctx.Done()
 
