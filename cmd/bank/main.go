@@ -12,8 +12,8 @@ import (
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
+	"github.com/subvisual/fidl/bank/postgres"
 	"github.com/subvisual/fidl/http"
-	"github.com/subvisual/fidl/postgres"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

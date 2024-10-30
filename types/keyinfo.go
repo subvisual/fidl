@@ -1,4 +1,4 @@
-package crypto
+package types
 
 import (
 	"encoding/json"
@@ -6,11 +6,6 @@ import (
 
 	"github.com/filecoin-project/go-state-types/crypto"
 )
-
-type KeyInfo struct {
-	Type       crypto.SigType
-	PrivateKey []byte
-}
 
 type (
 	Signature = crypto.Signature
@@ -22,6 +17,11 @@ const (
 	SigTypeBLS       = crypto.SigTypeBLS
 	SigTypeDelegated = crypto.SigTypeDelegated
 )
+
+type KeyInfo struct {
+	Type       crypto.SigType
+	PrivateKey []byte
+}
 
 func (ki *KeyInfo) UnmarshalJSON(value []byte) error {
 	type KeyInfo struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http"
+	"github.com/subvisual/fidl/types"
 )
 
 var (
@@ -83,17 +83,17 @@ type Server struct {
 }
 
 type RegisterParams struct {
-	ID    string   `validate:"required" json:"id"`
-	Price fidl.FIL `validate:"required" json:"price"`
+	ID    string    `validate:"required" json:"id"`
+	Price types.FIL `validate:"required" json:"price"`
 }
 
 type DepositParams struct {
-	Amount fidl.FIL `validate:"required" json:"amount"`
+	Amount types.FIL `validate:"required" json:"amount"`
 }
 
 type WithdrawParams struct {
-	Amount      fidl.FIL `validate:"required" json:"amount"`
-	Destination string   `validate:"required" json:"dst"`
+	Amount      types.FIL `validate:"required" json:"amount"`
+	Destination string    `validate:"required" json:"dst"`
 }
 
 type AuthorizeParams struct {
@@ -105,8 +105,8 @@ type RedeemParams struct {
 }
 
 type Service interface {
-	RegisterProxy(spid string, source string, price fidl.FIL) error
-	Deposit(address string, price fidl.FIL) (*fidl.FIL, error)
-	Withdraw(address string, destination string, price fidl.FIL) (*fidl.FIL, error)
-	Balance(address string) (*fidl.FIL, error)
+	RegisterProxy(spid string, source string, price types.FIL) error
+	Deposit(address string, price types.FIL) (*types.FIL, error)
+	Withdraw(address string, destination string, price types.FIL) (*types.FIL, error)
+	Balance(address string) (*types.FIL, error)
 }
