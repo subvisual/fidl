@@ -106,7 +106,7 @@ type RedeemParams struct {
 
 type Service interface {
 	RegisterProxy(spid string, source string, price fidl.FIL) error
-	Deposit(address string, price fidl.FIL) (fidl.FIL, error)
-	Withdraw(address string, destination string, price fidl.FIL) (fidl.FIL, error)
-	Balance(address string) (fidl.FIL, error)
+	Deposit(address string, price fidl.FIL) (*fidl.FIL, error)
+	Withdraw(address string, destination string, price fidl.FIL) (*fidl.FIL, error)
+	Balance(address string) (*fidl.FIL, error)
 }

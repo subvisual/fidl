@@ -2,8 +2,11 @@ package fidl
 
 import (
 	"database/sql"
+	"fmt"
+	"math/big"
 
 	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/venus/venus-shared/actors/types"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,7 +17,29 @@ var (
 	Commit string
 )
 
-type FIL float64
+type FIL struct {
+	types.FIL
+}
+
+func (b *FIL) Scan(value interface{}) error {
+	if value == nil {
+		b = nil
+	}
+
+	switch t := value.(type) {
+	case []uint8:
+		var bInt big.Int
+		_, ok := bInt.SetString(string(value.([]uint8)), 10)
+		if !ok {
+			return fmt.Errorf("failed to load value to []uint8: %v", value)
+		}
+		b.Int = &bInt
+	default:
+		return fmt.Errorf("could not scan type %T into FIL", t)
+	}
+
+	return nil
+}
 
 type Wallet struct {
 	Path    string  `toml:"path"`
