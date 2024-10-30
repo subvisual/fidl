@@ -3,6 +3,7 @@ package fidl
 import (
 	"database/sql"
 
+	"github.com/filecoin-project/go-address"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,6 +15,22 @@ var (
 )
 
 type FIL float64
+
+type Wallet struct {
+	Path    string  `toml:"path"`
+	Address Address `toml:"address"`
+}
+
+type Address struct {
+	*address.Address
+}
+
+func (a *Address) UnmarshalText(value []byte) error {
+	addr, err := address.NewFromString(string(value))
+	a.Address = &addr
+
+	return err // nolint:wrapcheck
+}
 
 type Queryable interface {
 	Get(dest interface{}, query string, args ...interface{}) error

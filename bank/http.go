@@ -1,6 +1,7 @@
 package bank
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,12 @@ import (
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http/jsend"
 )
+
+func SetHeaders(w http.ResponseWriter, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(status)
+}
 
 func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value any) {
 	var status int
@@ -35,7 +42,7 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 		return
 	}
 
-	fidl.SetHeaders(w, status)
+	SetHeaders(w, status)
 	payload := jsend.Fail(body)
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
@@ -43,35 +50,30 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 	}
 }
 
-func ParseHeader(r *http.Request) (*crypto.Signature, address.Address, string, error) {
-	dataSig := []byte(r.Header.Get("sig"))
-	dataPub := []byte(r.Header.Get("pub"))
-	dataMsg := []byte(r.Header.Get("msg"))
+func ParseHeader(r *http.Request) (*crypto.Signature, fidl.Address, []byte, error) {
+	dataSig := r.Header.Get("sig")
+	dataPub := r.Header.Get("pub")
+	dataMsg := r.Header.Get("msg")
 
-	var str string
-	if err := json.Unmarshal(dataSig, &str); err != nil {
-		return nil, address.Address{}, "", fmt.Errorf("failed to parse signature from header: %w", err)
+	binSig, err := hex.DecodeString(dataSig)
+	if err != nil {
+		return nil, fidl.Address{}, nil, fmt.Errorf("failed to decode signature string: %w", err)
+	}
+
+	binMsg, err := hex.DecodeString(dataMsg)
+	if err != nil {
+		return nil, fidl.Address{}, nil, fmt.Errorf("failed to decode message string: %w", err)
 	}
 
 	var sig crypto.Signature
-	if err := json.Unmarshal([]byte(str), &sig); err != nil {
-		return nil, address.Address{}, "", fmt.Errorf("failed to parse signature from header: %w", err)
+	if err = sig.UnmarshalBinary(binSig); err != nil {
+		return nil, fidl.Address{}, nil, fmt.Errorf("failed to unmarshal binary signature: %w", err)
 	}
 
-	var pub string
-	if err := json.Unmarshal(dataPub, &pub); err != nil {
-		return nil, address.Address{}, "", fmt.Errorf("failed to parse public key from header: %w", err)
-	}
-
-	addr, err := address.NewFromString(pub)
+	addr, err := address.NewFromString(dataPub)
 	if err != nil {
-		return nil, address.Address{}, "", fmt.Errorf("failed to parse address from header: %w", err)
+		return nil, fidl.Address{}, nil, fmt.Errorf("failed to parse address from header: %w", err)
 	}
 
-	var msg string
-	if err := json.Unmarshal(dataMsg, &msg); err != nil {
-		return nil, address.Address{}, "", fmt.Errorf("failed to parse message from header: %w", err)
-	}
-
-	return &sig, addr, msg, nil
+	return &sig, fidl.Address{Address: &addr}, binMsg, nil
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http"
 )
 
@@ -16,7 +17,7 @@ type Db struct {
 }
 
 type Wallet struct {
-	Address string `toml:"address"`
+	Address fidl.Address `toml:"address"`
 }
 
 type Config struct {
