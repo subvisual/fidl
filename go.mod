@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/filecoin-project/go-address v1.2.0
+	github.com/filecoin-project/go-state-types v0.14.0
 	github.com/filecoin-project/venus v1.16.2
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.1
@@ -18,7 +19,6 @@ require (
 
 require (
 	github.com/filecoin-project/go-crypto v0.1.0 // indirect
-	github.com/filecoin-project/go-state-types v0.14.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect

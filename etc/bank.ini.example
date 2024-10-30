@@ -21,4 +21,4 @@ max-idle-connections=25
 max-idle-time="15m"
 
 [wallet]
-public-key="bank public key"
+address="f1qbvbikeuozxgoop5bc7nkcokapslxxdy2gucfqa"

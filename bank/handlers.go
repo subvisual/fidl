@@ -3,8 +3,8 @@ package bank
 import (
 	"net/http"
 
-	"github.com/filecoin-project/go-address"
 	"github.com/go-chi/chi/v5"
+	"github.com/subvisual/fidl"
 )
 
 type envelope map[string]any
@@ -24,9 +24,9 @@ func (s *Server) Routes(r chi.Router) {
 func (s *Server) handleRegisterProxy(w http.ResponseWriter, r *http.Request) {
 	var params RegisterParams
 
-	address, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 
@@ -51,9 +51,9 @@ func (s *Server) handleRegisterProxy(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeposit(w http.ResponseWriter, r *http.Request) {
 	var params DepositParams
 
-	address, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 
@@ -79,9 +79,9 @@ func (s *Server) handleDeposit(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleWithdraw(w http.ResponseWriter, r *http.Request) {
 	var params WithdrawParams
 
-	address, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 
@@ -105,9 +105,9 @@ func (s *Server) handleWithdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {
-	address, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 
@@ -123,9 +123,9 @@ func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	var params AuthorizeParams
 
-	_, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	_, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 
@@ -147,9 +147,9 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	var params RedeemParams
 
-	_, ok := r.Context().Value(CtxKeyAddress).(address.Address)
+	_, ok := r.Context().Value(CtxKeyAddress).(fidl.Address)
 	if !ok {
-		s.JSON(w, r, http.StatusBadRequest, "failed to parse header signature")
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
 	}
 

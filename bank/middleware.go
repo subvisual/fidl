@@ -22,7 +22,7 @@ func AuthenticationCtx() func(http.Handler) http.Handler {
 				return
 			}
 
-			if err := crypto.Verify(sig, addr, []byte(msg)); err != nil {
+			if err := crypto.Verify(sig, *addr.Address, msg); err != nil {
 				http.Error(w, "failed to verify signature", http.StatusUnauthorized)
 				return
 			}
