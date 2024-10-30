@@ -6,6 +6,7 @@ import (
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
+	"github.com/subvisual/fidl/types"
 )
 
 type BankConfig struct {
@@ -38,7 +39,7 @@ func getAccountByAddress(address string, tx fidl.Queryable) (*bank.Account, erro
 	return &account, nil
 }
 
-func (s BankService) RegisterProxy(spid string, walletAddress string, price fidl.FIL) error {
+func (s BankService) RegisterProxy(spid string, walletAddress string, price types.FIL) error {
 	var accountID int64
 
 	accountQuery :=
@@ -84,8 +85,8 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price fidl
 	return nil
 }
 
-func (s BankService) Deposit(address string, amount fidl.FIL) (*fidl.FIL, error) {
-	var balance fidl.FIL
+func (s BankService) Deposit(address string, amount types.FIL) (*types.FIL, error) {
+	var balance types.FIL
 
 	insertAccountQuery :=
 		`
@@ -156,8 +157,8 @@ func (s BankService) Deposit(address string, amount fidl.FIL) (*fidl.FIL, error)
 	return &balance, nil
 }
 
-func (s BankService) Withdraw(address string, destination string, amount fidl.FIL) (*fidl.FIL, error) {
-	var balance *fidl.FIL
+func (s BankService) Withdraw(address string, destination string, amount types.FIL) (*types.FIL, error) {
+	var balance *types.FIL
 
 	if destination == s.cfg.WalletAddress {
 		return nil, bank.ErrTransactionNotAllowed
@@ -245,8 +246,8 @@ func (s BankService) Withdraw(address string, destination string, amount fidl.FI
 	return balance, nil
 }
 
-func (s BankService) Balance(address string) (*fidl.FIL, error) {
-	var balance fidl.FIL
+func (s BankService) Balance(address string) (*types.FIL, error) {
+	var balance types.FIL
 
 	query :=
 		`

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http"
+	"github.com/subvisual/fidl/types"
 )
 
 type Bank struct {
@@ -18,12 +18,12 @@ type Provider struct {
 }
 
 type Config struct {
-	Env      string      `toml:"env"`
-	Logger   http.Logger `toml:"logger"`
-	HTTP     http.HTTP   `toml:"http"`
-	Wallet   fidl.Wallet `toml:"wallet"`
-	Bank     Bank        `toml:"bank"`
-	Provider Provider    `toml:"provider"`
+	Env      string       `toml:"env"`
+	Logger   http.Logger  `toml:"logger"`
+	HTTP     http.HTTP    `toml:"http"`
+	Wallet   types.Wallet `toml:"wallet"`
+	Bank     Bank         `toml:"bank"`
+	Provider Provider     `toml:"provider"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

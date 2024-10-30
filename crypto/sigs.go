@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/venus/pkg/crypto"
 	_ "github.com/filecoin-project/venus/pkg/crypto/secp" // to run init()
-	"github.com/subvisual/fidl"
+	"github.com/subvisual/fidl/types"
 )
 
 func Verify(sig *crypto.Signature, addr address.Address, msg []byte) error {
@@ -21,8 +21,8 @@ func Verify(sig *crypto.Signature, addr address.Address, msg []byte) error {
 	return nil
 }
 
-func Sign(wallet fidl.Wallet, msg []byte) (*crypto.Signature, error) {
-	var keyInfo KeyInfo
+func Sign(wallet types.Wallet, msg []byte) (*crypto.Signature, error) {
+	var keyInfo types.KeyInfo
 
 	pkIn, err := os.ReadFile(wallet.Path)
 	if err != nil {

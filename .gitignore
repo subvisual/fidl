@@ -20,7 +20,7 @@
 !LICENSE
 
 !docs/img/*
-!postgres/migrations/*
+!bank/postgres/migrations/*
 
 !etc/*.ini.example
 !etc/*.key.example
