@@ -85,7 +85,7 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price type
 	return nil
 }
 
-func (s BankService) Deposit(address string, amount types.FIL) (*types.FIL, error) {
+func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error) {
 	var balance types.FIL
 
 	insertAccountQuery :=
@@ -151,17 +151,17 @@ func (s BankService) Deposit(address string, amount types.FIL) (*types.FIL, erro
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return types.FIL{}, err
 	}
 
-	return &balance, nil
+	return balance, nil
 }
 
-func (s BankService) Withdraw(address string, destination string, amount types.FIL) (*types.FIL, error) {
-	var balance *types.FIL
+func (s BankService) Withdraw(address string, destination string, amount types.FIL) (types.FIL, error) {
+	var balance types.FIL
 
 	if destination == s.cfg.WalletAddress {
-		return nil, bank.ErrTransactionNotAllowed
+		return types.FIL{}, bank.ErrTransactionNotAllowed
 	}
 
 	transactionQuery :=
@@ -240,13 +240,13 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return types.FIL{}, err
 	}
 
 	return balance, nil
 }
 
-func (s BankService) Balance(address string) (*types.FIL, error) {
+func (s BankService) Balance(address string) (types.FIL, error) {
 	var balance types.FIL
 
 	query :=
@@ -267,10 +267,10 @@ func (s BankService) Balance(address string) (*types.FIL, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return types.FIL{}, err
 	}
 
-	return &balance, nil
+	return balance, nil
 }
 
 func (s BankService) BalanceStatus(id int64) (bank.BalanceStatus, error) {

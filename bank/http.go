@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/venus/pkg/crypto"
 	"github.com/subvisual/fidl/http/jsend"
 	"github.com/subvisual/fidl/types"
 )
@@ -50,7 +49,7 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 	}
 }
 
-func ParseHeader(r *http.Request) (*crypto.Signature, types.Address, []byte, error) {
+func ParseHeader(r *http.Request) (*types.Signature, types.Address, []byte, error) {
 	dataSig := r.Header.Get("sig")
 	dataPub := r.Header.Get("pub")
 	dataMsg := r.Header.Get("msg")
@@ -65,7 +64,7 @@ func ParseHeader(r *http.Request) (*crypto.Signature, types.Address, []byte, err
 		return nil, types.Address{}, nil, fmt.Errorf("failed to decode message string: %w", err)
 	}
 
-	var sig crypto.Signature
+	var sig types.Signature
 	if err = sig.UnmarshalBinary(binSig); err != nil {
 		return nil, types.Address{}, nil, fmt.Errorf("failed to unmarshal binary signature: %w", err)
 	}

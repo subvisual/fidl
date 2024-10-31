@@ -16,16 +16,14 @@ func (b *FIL) Scan(value interface{}) error {
 		b = nil
 	}
 
-	switch t := value.(type) { // nolint:varnamelen
-	case []uint8:
-		var bInt big.Int
-		_, ok := bInt.SetString(string(value.([]uint8)), 10)
-		if !ok {
-			return fmt.Errorf("failed to load value to []uint8: %v", value)
-		}
-		b.Int = &bInt
-	default:
-		return fmt.Errorf("could not scan type %T into FIL", t)
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("could not scan type %T into FIL", value)
+	}
+
+	b.Int, ok = new(big.Int).SetString(string(v), 10)
+	if !ok {
+		return fmt.Errorf("failed to load value to []uint8: %v", value)
 	}
 
 	return nil
