@@ -1,12 +1,15 @@
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"github.com/subvisual/fidl/cli"
+)
 
-func Parse(bankAddress string) *cobra.Command {
+func Parse(cfg cli.Config) *cobra.Command {
 	rootCmd := &cobra.Command{Use: "fidl"}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(newDepositCommand(bankAddress))
-	rootCmd.AddCommand(newWithdrawCommand(bankAddress))
+	rootCmd.AddCommand(newDepositCommand(cfg))
+	rootCmd.AddCommand(newWithdrawCommand(cfg))
 
 	return rootCmd
 }

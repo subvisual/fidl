@@ -24,6 +24,6 @@ func main() {
 
 	cfg := cli.LoadConfiguration(cfgFilePath)
 
-	c := commands.Parse(cfg.CLI.BankAddress)
+	c := commands.Parse(cfg)
 	_ = c.Execute()
 }
