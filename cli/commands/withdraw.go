@@ -1,13 +1,13 @@
 package commands
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/subvisual/fidl/cli"
 )
 
-func newWithdrawCommand(bankAddress string) *cobra.Command {
+func newWithdrawCommand(cfg cli.Config) *cobra.Command {
 	opts := cli.WithdrawOptions{}
 	withdrawCmd := &cobra.Command{
 		Use:   "withdraw",
@@ -15,20 +15,20 @@ func newWithdrawCommand(bankAddress string) *cobra.Command {
 		Long: `This command transfers a specified amount of FIL from the client's bank account to their 
 	own wallet. For example:
 	`,
-		Run: func(_ *cobra.Command, _ []string) {
-			err := cli.Withdraw(bankAddress)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			err := cli.Withdraw(cfg, opts)
 			if err != nil {
-				log.Fatalf("failed to handle the withdraw request: %v", err)
+				return fmt.Errorf("%w", err)
 			}
+
+			return nil
 		},
 	}
 
-	withdrawCmd.Flags().Float64VarP(&opts.Amount, "amount", "a", 0, "The amount of funds to transfer")
-	withdrawCmd.Flags().StringVarP(&opts.Publickey, "publickey", "p", "", "The wallet's public key")
-	withdrawCmd.Flags().StringVarP(&opts.Signature, "signature", "s", "", "The signature to validate the wallet's ownership")
+	withdrawCmd.Flags().StringVarP(&opts.Amount, "amount", "a", "", "The amount of funds to transfer")
+	withdrawCmd.Flags().StringVarP(&opts.Destination, "destination", "d", "", "The destination wallet")
 	cobra.CheckErr(withdrawCmd.MarkFlagRequired("amount"))
-	cobra.CheckErr(withdrawCmd.MarkFlagRequired("publickey"))
-	cobra.CheckErr(withdrawCmd.MarkFlagRequired("signature"))
+	cobra.CheckErr(withdrawCmd.MarkFlagRequired("destination"))
 
 	return withdrawCmd
 }

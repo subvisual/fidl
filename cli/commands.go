@@ -1,13 +1,21 @@
 package cli
 
+import "github.com/subvisual/fidl/types"
+
 type WithdrawOptions struct {
-	Amount    float64
-	Publickey string
-	Signature string
+	Amount      string `json:"amount"`
+	Destination string `json:"dst"`
 }
 
 type DepositOptions struct {
-	Amount    float64
-	Publickey string
-	Signature string
+	Amount string
+}
+
+type WithdrawBody struct {
+	Amount      types.FIL `json:"amount"`
+	Destination string    `json:"dst"`
+}
+
+type DepositBody struct {
+	Amount types.FIL
 }

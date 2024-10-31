@@ -5,19 +5,17 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/subvisual/fidl/types"
 )
 
 type CLI struct {
 	BankAddress string `toml:"bank-address"`
 }
 
-type Wallet struct {
-}
-
 type Config struct {
-	Env    string `toml:"env"`
-	CLI    CLI    `toml:"cli"`
-	Wallet Wallet `toml:"wallet"`
+	Env    string       `toml:"env"`
+	CLI    CLI          `toml:"cli"`
+	Wallet types.Wallet `toml:"wallet"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {
