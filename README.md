@@ -60,3 +60,7 @@ To run the Proxy: `go run cmd/proxy/main.go`
 HTTP server API featuring the following endpoints:
 
 -   GET `/api/v1/healthcheck`: healthcheck to verify if the server is properly running
+
+## License
+
+Dual-licensed under [MIT](https://github.com/subvisual/fidl/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/subvisual/fidl/blob/main/LICENSE-APACHE)
