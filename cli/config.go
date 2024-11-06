@@ -9,7 +9,6 @@ import (
 )
 
 type CLI struct {
-	BankAddress string `toml:"bank-address"`
 }
 
 type Config struct {

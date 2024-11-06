@@ -27,8 +27,10 @@ func newWithdrawCommand(cfg cli.Config) *cobra.Command {
 
 	withdrawCmd.Flags().StringVarP(&opts.Amount, "amount", "a", "", "The amount of funds to transfer")
 	withdrawCmd.Flags().StringVarP(&opts.Destination, "destination", "d", "", "The destination wallet")
+	withdrawCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
 	cobra.CheckErr(withdrawCmd.MarkFlagRequired("amount"))
 	cobra.CheckErr(withdrawCmd.MarkFlagRequired("destination"))
+	cobra.CheckErr(withdrawCmd.MarkFlagRequired("bank"))
 
 	return withdrawCmd
 }

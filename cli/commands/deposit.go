@@ -25,7 +25,9 @@ func newDepositCommand(cfg cli.Config) *cobra.Command {
 		},
 	}
 	depositCmd.Flags().StringVarP(&opts.Amount, "amount", "a", "", "The amount of funds to transfer")
+	depositCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
 	cobra.CheckErr(depositCmd.MarkFlagRequired("amount"))
+	cobra.CheckErr(depositCmd.MarkFlagRequired("bank"))
 
 	return depositCmd
 }
