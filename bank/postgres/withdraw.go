@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
@@ -20,14 +19,6 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 		`
 		INSERT INTO transactions (source, destination, value, status_id)
 		VALUES ($1, $2, $3, $4)
-		`
-
-	deleteQuery :=
-		`
-		WITH cte1 AS (
-    		DELETE FROM balances WHERE id = $1
-		)
-		DELETE FROM accounts WHERE id = $1
 		`
 
 	withdrawQuery :=
@@ -63,17 +54,6 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 		args = []any{s.cfg.WalletAddress, destination, amount.Int.String(), bank.TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
-		}
-
-		zero, ok := new(big.Int).SetString("0", 10)
-		if !ok {
-			return fmt.Errorf("failed to set zero big int")
-		}
-
-		if balance.Cmp(zero) == 0 && account.Type == bank.Client {
-			if _, err := tx.Exec(deleteQuery, account.ID); err != nil {
-				return fmt.Errorf("failed to delete rows during withdraw balance: %w", err)
-			}
 		}
 
 		return nil

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/subvisual/fidl/http"
 	"github.com/subvisual/fidl/types"
 )
@@ -79,7 +80,7 @@ type WithdrawParams struct {
 }
 
 type AuthorizeParams struct {
-	/* TODO */
+	Amount types.FIL `validate:"required" json:"amount"`
 }
 
 type RedeemParams struct {
@@ -91,5 +92,5 @@ type Service interface {
 	Deposit(address string, price types.FIL) (types.FIL, error)
 	Withdraw(address string, destination string, price types.FIL) (types.FIL, error)
 	Balance(address string) (types.FIL, error)
-	Authorize(address string) (string, error)
+	Authorize(address string, amount types.FIL) (uuid.UUID, types.FIL, types.FIL, error)
 }

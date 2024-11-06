@@ -139,13 +139,13 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	auth, err := s.BankService.Authorize(address.String())
+	id, fil, escrow, err := s.BankService.Authorize(address.String(), params.Amount)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"bank": auth})
+	s.JSON(w, r, http.StatusOK, envelope{"fil": fil, "escrow": escrow, "id": id})
 }
 
 func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
