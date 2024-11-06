@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS
     uuid UUID DEFAULT gen_random_uuid (),
     source text NOT NULL,
     destination text NOT NULL,
-    value float NOT NULL,
+    value numeric(38) NOT NULL DEFAULT 0,
     status_id integer NOT NULL DEFAULT 1 REFERENCES transaction_status (id),
     created_at timestamp(0) NOT NULL DEFAULT (NOW() at time zone ('utc')),
     updated_at timestamp(0) NOT NULL DEFAULT (NOW() at time zone ('utc'))

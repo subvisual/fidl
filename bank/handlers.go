@@ -123,7 +123,7 @@ func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	var params AuthorizeParams
 
-	_, ok := r.Context().Value(CtxKeyAddress).(types.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(types.Address)
 	if !ok {
 		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
@@ -139,9 +139,13 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/* TODO */
+	auth, err := s.BankService.Authorize(address.String())
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"bank": "TODO: authorize"})
+	s.JSON(w, r, http.StatusOK, envelope{"bank": auth})
 }
 
 func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
