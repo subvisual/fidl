@@ -1,16 +1,11 @@
 package crypto
 
 import (
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/venus/pkg/crypto"
 	_ "github.com/filecoin-project/venus/pkg/crypto/secp" // to run init()
-	"github.com/subvisual/fidl/types"
 )
 
 func Verify(sig *crypto.Signature, addr address.Address, msg []byte) error {
@@ -21,25 +16,8 @@ func Verify(sig *crypto.Signature, addr address.Address, msg []byte) error {
 	return nil
 }
 
-func Sign(wallet types.Wallet, msg []byte) (*crypto.Signature, error) {
-	var keyInfo types.KeyInfo
-
-	pkIn, err := os.ReadFile(wallet.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load private key: %w", err)
-	}
-
-	pkIn = bytes.TrimRight(pkIn, "\n")
-	pkOut := make([]byte, hex.DecodedLen(len(pkIn)))
-	if _, err := hex.Decode(pkOut, pkIn); err != nil {
-		return nil, fmt.Errorf("failed to decode private key: %w", err)
-	}
-
-	if err := json.Unmarshal(pkOut, &keyInfo); err != nil {
-		return nil, fmt.Errorf("failed to convert private key: %w", err)
-	}
-
-	sig, err := crypto.Sign(msg, keyInfo.PrivateKey, keyInfo.Type)
+func Sign(privkey []byte, sigType crypto.SigType, msg []byte) (*crypto.Signature, error) {
+	sig, err := crypto.Sign(msg, privkey, sigType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign message: %w", err)
 	}
