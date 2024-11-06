@@ -20,12 +20,17 @@ type Wallet struct {
 	Address types.Address `toml:"address"`
 }
 
+type Escrow struct {
+	Address types.Address `toml:"address"`
+}
+
 type Config struct {
 	Env    string      `toml:"env"`
 	Logger http.Logger `toml:"logger"`
 	Db     Db          `toml:"database"`
 	HTTP   http.HTTP   `toml:"http"`
 	Wallet Wallet      `toml:"wallet"`
+	Escrow Escrow      `toml:"escrow"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

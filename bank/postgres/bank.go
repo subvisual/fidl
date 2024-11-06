@@ -9,6 +9,7 @@ import (
 
 type BankConfig struct {
 	WalletAddress string
+	EscrowAddress string
 }
 
 type BankService struct {
