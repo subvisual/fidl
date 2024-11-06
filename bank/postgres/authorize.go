@@ -44,7 +44,7 @@ func (s BankService) Authorize(address string, amount types.FIL) (uuid.UUID, typ
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		balance, err = s.Balance(address)
+		balance, _, err = s.Balance(address)
 		if err != nil {
 			return err
 		}

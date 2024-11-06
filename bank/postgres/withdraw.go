@@ -37,7 +37,7 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		balance, err = s.Balance(address)
+		balance, _, err = s.Balance(address)
 		if err != nil {
 			return err
 		}

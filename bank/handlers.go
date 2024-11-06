@@ -111,13 +111,13 @@ func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fil, err := s.BankService.Balance(address.String())
+	fil, escrow, err := s.BankService.Balance(address.String())
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"fil": fil})
+	s.JSON(w, r, http.StatusOK, envelope{"fil": fil, "escrow": escrow})
 }
 
 func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {

@@ -7,12 +7,13 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Balance(address string) (types.FIL, error) {
+func (s BankService) Balance(address string) (types.FIL, types.FIL, error) {
 	var balance types.FIL
+	var escrow types.FIL
 
 	query :=
 		`
-		SELECT balance FROM balances WHERE id = $1
+		SELECT balance, escrow FROM balances WHERE id = $1
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
@@ -21,15 +22,16 @@ func (s BankService) Balance(address string) (types.FIL, error) {
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		if err := s.db.Get(&balance, query, account.ID); err != nil {
-			return fmt.Errorf("failed to balance by account id: %w", err)
+		args := []any{account.ID}
+		if err := tx.QueryRow(query, args...).Scan(&balance, &escrow); err != nil {
+			return fmt.Errorf("failed to get balances: %w", err)
 		}
 
 		return nil
 	})
 	if err != nil {
-		return types.FIL{}, err
+		return types.FIL{}, types.FIL{}, err
 	}
 
-	return balance, nil
+	return balance, escrow, nil
 }

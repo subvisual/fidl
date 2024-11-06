@@ -91,6 +91,6 @@ type Service interface {
 	RegisterProxy(spid string, source string, price types.FIL) error
 	Deposit(address string, price types.FIL) (types.FIL, error)
 	Withdraw(address string, destination string, price types.FIL) (types.FIL, error)
-	Balance(address string) (types.FIL, error)
+	Balance(address string) (types.FIL, types.FIL, error)
 	Authorize(address string, amount types.FIL) (uuid.UUID, types.FIL, types.FIL, error)
 }
