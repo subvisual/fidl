@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/subvisual/fidl/crypto"
+	"github.com/subvisual/fidl/types"
 )
 
 func PostRequest(cfg Config, bankAddress string, route string, body []byte, timeout int64) (*http.Response, error) {
@@ -28,7 +29,12 @@ func PostRequest(cfg Config, bankAddress string, route string, body []byte, time
 
 	msg := append([]byte(time.Now().UTC().String()), body...)
 
-	sig, err := crypto.Sign(cfg.Wallet, msg)
+	ki, err := types.ReadWallet(cfg.Wallet)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}

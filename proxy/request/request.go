@@ -11,6 +11,7 @@ import (
 
 	"github.com/subvisual/fidl/crypto"
 	"github.com/subvisual/fidl/proxy"
+	"github.com/subvisual/fidl/types"
 )
 
 func Register(cfg proxy.Config) error {
@@ -22,7 +23,12 @@ func Register(cfg proxy.Config) error {
 		return fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	sig, err := crypto.Sign(cfg.Wallet, body)
+	ki, err := types.ReadWallet(cfg.Wallet)
+	if err != nil {
+		return fmt.Errorf("failed to read wallet: %w", err)
+	}
+
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, body)
 	if err != nil {
 		return fmt.Errorf("failed to sign: %w", err)
 	}
