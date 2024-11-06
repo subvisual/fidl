@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 
@@ -14,15 +13,15 @@ func Deposit(cfg Config, options DepositOptions) error {
 	var b types.FIL // nolint:varnamelen
 	err := b.UnmarshalJSON([]byte(options.Amount))
 	if err != nil {
-		return fmt.Errorf("error unmarshaling amount data: %w", err)
+		return fmt.Errorf("error unmarshalling amount data: %w", err)
 	}
 
 	depositJSON, err := json.Marshal(DepositBody{Amount: b})
 	if err != nil {
-		return fmt.Errorf("error marshaling deposit data: %w", err)
+		return fmt.Errorf("error marshalling deposit data: %w", err)
 	}
 
-	resp, err := PostRequest(cfg, "deposit", depositJSON, 30)
+	resp, err := PostRequest(cfg, options.BankAddress, "deposit", depositJSON, 30)
 	if err != nil {
 		return err
 	}
@@ -31,12 +30,12 @@ func Deposit(cfg Config, options DepositOptions) error {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		bodyBytes, err := io.ReadAll(resp.Body)
+		depositResponse := TransactionResponse{}
+		err := json.NewDecoder(resp.Body).Decode(&depositResponse)
 		if err != nil {
-			return fmt.Errorf("error reading deposit response body: %w", err)
+			return fmt.Errorf("error decoding the response body: %s", err)
 		}
-		bodyString := string(bodyBytes)
-		log.Printf("Deposit succesfful, funds updated to: %s", bodyString)
+		log.Printf("Deposit successful, funds updated to: %s", &depositResponse.Data.FIL)
 
 	case http.StatusNotFound:
 		return fmt.Errorf("wallet not found")
@@ -51,15 +50,15 @@ func Withdraw(cfg Config, options WithdrawOptions) error {
 	var b types.FIL // nolint:varnamelen
 	err := b.UnmarshalJSON([]byte(options.Amount))
 	if err != nil {
-		return fmt.Errorf("error unmarshaling amount data: %w", err)
+		return fmt.Errorf("error unmarshalling amount data: %w", err)
 	}
 
 	withdrawJSON, err := json.Marshal(WithdrawBody{Amount: b, Destination: options.Destination})
 	if err != nil {
-		return fmt.Errorf("error marshaling withdraw data: %w", err)
+		return fmt.Errorf("error marshalling withdraw data: %w", err)
 	}
 
-	resp, err := PostRequest(cfg, "withdraw", withdrawJSON, 30)
+	resp, err := PostRequest(cfg, options.BankAddress, "withdraw", withdrawJSON, 30)
 	if err != nil {
 		return err
 	}
@@ -68,12 +67,12 @@ func Withdraw(cfg Config, options WithdrawOptions) error {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		bodyBytes, err := io.ReadAll(resp.Body)
+		withdrawResponse := TransactionResponse{}
+		err := json.NewDecoder(resp.Body).Decode(&withdrawResponse)
 		if err != nil {
-			return fmt.Errorf("error reading withdraw response body: %w", err)
+			return fmt.Errorf("error decoding the response body: %s", err)
 		}
-		bodyString := string(bodyBytes)
-		log.Printf("Withdraw succesfful, your current bank balance is: %s", bodyString)
+		log.Printf("Withdraw successful, your current bank balance is: %s", &withdrawResponse.Data.FIL)
 	case http.StatusNotFound:
 		return fmt.Errorf("wallet not found")
 	case http.StatusForbidden:

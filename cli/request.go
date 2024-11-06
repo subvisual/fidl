@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	fcrypto "github.com/subvisual/fidl/crypto"
+	"github.com/subvisual/fidl/crypto"
 )
 
-func PostRequest(cfg Config, route string, body []byte, timeout int64) (*http.Response, error) {
-	endpoint, err := url.JoinPath(cfg.CLI.BankAddress, route)
+func PostRequest(cfg Config, bankAddress string, route string, body []byte, timeout int64) (*http.Response, error) {
+	endpoint, err := url.JoinPath(bankAddress, route)
 	if err != nil {
 		return nil, fmt.Errorf("error joining endpoint path: %w", err)
 	}
@@ -28,7 +28,7 @@ func PostRequest(cfg Config, route string, body []byte, timeout int64) (*http.Re
 
 	msg := append([]byte(time.Now().UTC().String()), body...)
 
-	sig, err := fcrypto.Sign(cfg.Wallet, msg)
+	sig, err := crypto.Sign(cfg.Wallet, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
