@@ -32,6 +32,7 @@ func (s BankService) Authorize(address string, amount types.FIL) (uuid.UUID, typ
 		RETURNING uuid, balance
 		`
 
+	// nolint:goconst
 	transactionQuery :=
 		`
 		INSERT INTO transactions (source, destination, value, status_id)

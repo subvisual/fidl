@@ -15,6 +15,7 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 		return types.FIL{}, bank.ErrTransactionNotAllowed
 	}
 
+	// nolint:goconst
 	transactionQuery :=
 		`
 		INSERT INTO transactions (source, destination, value, status_id)

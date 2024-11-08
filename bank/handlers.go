@@ -17,6 +17,7 @@ func (s *Server) Routes(r chi.Router) {
 		r.Post("/withdraw", s.handleWithdraw)
 		r.Get("/balance", s.handleBalance)
 		r.Post("/authorize", s.handleAuthorize)
+		r.Get("/refund", s.handleRefund)
 		r.Post("/redeem", s.handleRedeem)
 	})
 }
@@ -146,6 +147,22 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.JSON(w, r, http.StatusOK, envelope{"fil": fil, "escrow": escrow, "id": id})
+}
+
+func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
+	address, ok := r.Context().Value(CtxKeyAddress).(types.Address)
+	if !ok {
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
+		return
+	}
+
+	balances, err := s.BankService.Refund(address.String())
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	s.JSON(w, r, http.StatusOK, envelope{"fil": balances.Available, "escrow": balances.Escrow, "expired": balances.Expired})
 }
 
 func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {

@@ -29,6 +29,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 		RETURNING balance
 		`
 
+	// nolint:goconst
 	transactionQuery :=
 		`
 		INSERT INTO transactions (source, destination, value, status_id)

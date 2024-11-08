@@ -21,7 +21,8 @@ type Wallet struct {
 }
 
 type Escrow struct {
-	Address types.Address `toml:"address"`
+	Address  types.Address `toml:"address"`
+	Deadline string        `toml:"deadline"`
 }
 
 type Config struct {

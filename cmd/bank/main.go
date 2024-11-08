@@ -81,8 +81,9 @@ func main() {
 
 	bankCtx := bank.Server{HTTP: httpServer}
 	bankCtx.BankService = postgres.NewBankService(db, &postgres.BankConfig{
-		WalletAddress: cfg.Wallet.Address.String(),
-		EscrowAddress: cfg.Wallet.Address.String(),
+		WalletAddress:  cfg.Wallet.Address.String(),
+		EscrowAddress:  cfg.Escrow.Address.String(),
+		EscrowDeadline: cfg.Escrow.Deadline,
 	})
 	bankCtx.RegisterValidators()
 

@@ -8,8 +8,9 @@ import (
 )
 
 type BankConfig struct {
-	WalletAddress string
-	EscrowAddress string
+	WalletAddress  string
+	EscrowAddress  string
+	EscrowDeadline string
 }
 
 type BankService struct {
@@ -25,10 +26,12 @@ func NewBankService(db *DB, cfg *BankConfig) *BankService {
 }
 
 func getAccountByAddress(address string, tx fidl.Queryable) (*bank.Account, error) {
-	query := `
+	query :=
+		`
 		SELECT *
 		FROM accounts
-		WHERE wallet_address = $1`
+		WHERE wallet_address = $1
+		`
 
 	var account bank.Account
 	if err := tx.Get(&account, query, address); err != nil {
