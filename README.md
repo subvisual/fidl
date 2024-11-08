@@ -43,7 +43,9 @@ HTTP server API featuring the following endpoints:
 -   GET `/api/v1/withdraw`: client withdraws FIL funds from the bank
 -   POST `/api/v1/balance`: checks client's balance
 -   POST `/api/v1/authorize`: authorizes transaction
+-   GET `/api/v1/refund`: client refunds all the expired FIL funds on escrow
 -   POST `/api/v1/redeem`: proxy redeems funds of transaction
+-   POST `/api/v1/verify`: proxy verifies an authorization
 
 ### Migrations
 
