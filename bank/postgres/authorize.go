@@ -9,7 +9,7 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Authorize(address string, amount types.FIL) (uuid.UUID, types.FIL, types.FIL, error) {
+func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthResponse, error) {
 	var balance types.FIL
 	var escrow types.FIL
 	var id uuid.UUID
@@ -77,8 +77,12 @@ func (s BankService) Authorize(address string, amount types.FIL) (uuid.UUID, typ
 		return nil
 	})
 	if err != nil {
-		return uuid.UUID{}, types.FIL{}, types.FIL{}, err
+		return bank.AuthResponse{}, err
 	}
 
-	return id, balance, escrow, nil
+	return bank.AuthResponse{
+		UUID:      id,
+		Available: balance,
+		Escrow:    escrow,
+	}, nil
 }

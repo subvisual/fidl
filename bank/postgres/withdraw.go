@@ -12,7 +12,7 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 	var balance types.FIL
 
 	if destination == s.cfg.WalletAddress {
-		return types.FIL{}, bank.ErrTransactionNotAllowed
+		return types.FIL{}, bank.ErrOperationNotAllowed
 	}
 
 	// nolint:goconst

@@ -19,6 +19,7 @@ func (s *Server) Routes(r chi.Router) {
 		r.Post("/authorize", s.handleAuthorize)
 		r.Get("/refund", s.handleRefund)
 		r.Post("/redeem", s.handleRedeem)
+		r.Post("/verify", s.handleVerify)
 	})
 }
 
@@ -140,13 +141,13 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, fil, escrow, err := s.BankService.Authorize(address.String(), params.Amount)
+	auth, err := s.BankService.Authorize(address.String(), params.Amount)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"fil": fil, "escrow": escrow, "id": id})
+	s.JSON(w, r, http.StatusOK, envelope{"fil": auth.Available, "escrow": auth.Escrow, "id": auth.UUID})
 }
 
 func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
@@ -187,4 +188,32 @@ func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	/* TODO */
 
 	s.JSON(w, r, http.StatusOK, envelope{"bank": "TODO: redeem"})
+}
+
+func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
+	var params VerifyParams
+
+	address, ok := r.Context().Value(CtxKeyAddress).(types.Address)
+	if !ok {
+		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
+		return
+	}
+
+	if err := s.HTTP.DecodeJSON(w, r, &params); err != nil {
+		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
+		return
+	}
+
+	if err := s.HTTP.Validate.Struct(params); err != nil {
+		s.JSON(w, r, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	err := s.BankService.Verify(address.String(), params.UUID, params.Amount)
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	s.JSON(w, r, http.StatusOK, envelope{"authorization": "valid"})
 }

@@ -48,7 +48,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 		}
 
 		if account.Type == bank.StorageProvider {
-			return bank.ErrTransactionNotAllowed
+			return bank.ErrOperationNotAllowed
 		}
 
 		args = []any{account.ID, amount.Int.String()}
