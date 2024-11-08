@@ -169,7 +169,7 @@ func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
 	var params RedeemParams
 
-	_, ok := r.Context().Value(CtxKeyAddress).(types.Address)
+	address, ok := r.Context().Value(CtxKeyAddress).(types.Address)
 	if !ok {
 		s.JSON(w, r, http.StatusBadRequest, "failed to parse header address")
 		return
@@ -185,9 +185,13 @@ func (s *Server) handleRedeem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/* TODO */
+	balances, err := s.BankService.Redeem(address.String(), params.UUID, params.Amount)
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"bank": "TODO: redeem"})
+	s.JSON(w, r, http.StatusOK, envelope{"excess": balances.Excess, "sp": balances.SP, "cli": balances.CLI})
 }
 
 func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {

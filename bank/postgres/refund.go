@@ -8,7 +8,7 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Refund(address string) (bank.RefundBalances, error) {
+func (s BankService) Refund(address string) (bank.RefundResponse, error) {
 	var expiredSum types.FIL
 	var balance types.FIL
 	var escrow types.FIL
@@ -78,10 +78,10 @@ func (s BankService) Refund(address string) (bank.RefundBalances, error) {
 		return nil
 	})
 	if err != nil {
-		return bank.RefundBalances{}, err
+		return bank.RefundResponse{}, err
 	}
 
-	return bank.RefundBalances{
+	return bank.RefundResponse{
 		Expired:   expiredSum,
 		Available: balance,
 		Escrow:    escrow,
