@@ -18,7 +18,10 @@ tls=false
 path="./etc/proxy.key"
 address="f1xccu2bjjxu5e7lolwjlzh2rdkg2rdslwgkk7dci"
 
-[bank]
+[bank.one]
+register="http://localhost:8080/api/v1/register"
+
+[bank.two]
 register="http://localhost:8080/api/v1/register"
 
 [provider]

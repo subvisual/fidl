@@ -18,12 +18,12 @@ type Provider struct {
 }
 
 type Config struct {
-	Env      string       `toml:"env"`
-	Logger   http.Logger  `toml:"logger"`
-	HTTP     http.HTTP    `toml:"http"`
-	Wallet   types.Wallet `toml:"wallet"`
-	Bank     Bank         `toml:"bank"`
-	Provider Provider     `toml:"provider"`
+	Env      string          `toml:"env"`
+	Logger   http.Logger     `toml:"logger"`
+	HTTP     http.HTTP       `toml:"http"`
+	Wallet   types.Wallet    `toml:"wallet"`
+	Bank     map[string]Bank `toml:"bank"`
+	Provider Provider        `toml:"provider"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {
