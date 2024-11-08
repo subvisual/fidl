@@ -93,10 +93,16 @@ type AuthorizeParams struct {
 }
 
 type RedeemParams struct {
-	/* TODO */
+	UUID   uuid.UUID `validate:"required" json:"id"`
+	Amount types.FIL `validate:"required" json:"amount"`
 }
 
-type RefundBalances struct {
+type VerifyParams struct {
+	UUID   uuid.UUID `validate:"required" json:"id"`
+	Amount types.FIL `validate:"required" json:"amount"`
+}
+
+type RefundResponse struct {
 	Available types.FIL
 	Escrow    types.FIL
 	Expired   types.FIL
@@ -108,9 +114,10 @@ type AuthResponse struct {
 	Escrow    types.FIL
 }
 
-type VerifyParams struct {
-	UUID   uuid.UUID `validate:"required" json:"id"`
-	Amount types.FIL `validate:"required" json:"amount"`
+type RedeemResponse struct {
+	Excess types.FIL
+	SP     types.FIL
+	CLI    types.FIL
 }
 
 type Service interface {
@@ -119,6 +126,7 @@ type Service interface {
 	Withdraw(address string, destination string, price types.FIL) (types.FIL, error)
 	Balance(address string) (types.FIL, types.FIL, error)
 	Authorize(address string, amount types.FIL) (AuthResponse, error)
-	Refund(address string) (RefundBalances, error)
+	Refund(address string) (RefundResponse, error)
 	Verify(address string, uuid uuid.UUID, amount types.FIL) error
+	Redeem(address string, uuid uuid.UUID, amount types.FIL) (RedeemResponse, error)
 }
