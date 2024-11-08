@@ -9,7 +9,11 @@ type WithdrawOptions struct {
 }
 
 type DepositOptions struct {
-	Amount      string
+	Amount      string `json:"amount"`
+	BankAddress string `json:"bankAddress"`
+}
+
+type BalanceOptions struct {
 	BankAddress string `json:"bankAddress"`
 }
 
@@ -19,7 +23,7 @@ type WithdrawBody struct {
 }
 
 type DepositBody struct {
-	Amount types.FIL
+	Amount types.FIL `json:"amount"`
 }
 
 type TransactionResponseData struct {
@@ -29,4 +33,14 @@ type TransactionResponseData struct {
 type TransactionResponse struct {
 	Status string                  `json:"status"`
 	Data   TransactionResponseData `json:"data"`
+}
+
+type BalanceResponseData struct {
+	FIL    types.FIL `json:"fil"`
+	Escrow types.FIL `json:"escrow"`
+}
+
+type BalanceResponse struct {
+	Status string              `json:"status"`
+	Data   BalanceResponseData `json:"data"`
 }

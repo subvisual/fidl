@@ -1,6 +1,9 @@
 env="development"
 
-[cli]
+[route]
+balance="/api/v1/balance"
+deposit="/api/v1/deposit"
+withdraw="/api/v1/withdraw"
 
 [wallet]
 path="./etc/cli.key"
