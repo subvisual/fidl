@@ -8,12 +8,15 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-type CLI struct {
+type Route struct {
+	Balance  string `toml:"balance"`
+	Deposit  string `toml:"deposit"`
+	Withdraw string `toml:"withdraw"`
 }
 
 type Config struct {
 	Env    string       `toml:"env"`
-	CLI    CLI          `toml:"cli"`
+	Route  Route        `toml:"route"`
 	Wallet types.Wallet `toml:"wallet"`
 }
 

@@ -10,6 +10,7 @@ func Parse(cfg cli.Config) *cobra.Command {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(newDepositCommand(cfg))
 	rootCmd.AddCommand(newWithdrawCommand(cfg))
+	rootCmd.AddCommand(newBalanceCommand(cfg))
 
 	return rootCmd
 }
