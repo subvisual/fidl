@@ -26,12 +26,12 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 		switch {
 		case errors.Is(err, ErrInsufficientFunds):
 			status, body = http.StatusForbidden, envelope{"bank": "insufficient funds"}
-		case errors.Is(err, ErrLockedFunds):
-			status, body = http.StatusUnauthorized, envelope{"bank": "locked funds"}
-		case errors.Is(err, ErrTransactionNotAllowed):
-			status, body = http.StatusUnauthorized, envelope{"bank": "transaction not allowed"}
+		case errors.Is(err, ErrOperationNotAllowed):
+			status, body = http.StatusUnauthorized, envelope{"bank": "operation not allowed"}
 		case errors.Is(err, ErrNothingToRefund):
 			status, body = http.StatusUnprocessableEntity, envelope{"bank": "nothing to refund"}
+		case errors.Is(err, ErrAuthNotFound):
+			status, body = http.StatusNotFound, envelope{"bank": "no valid authorization"}
 		default:
 			s.HTTP.JSON(w, r, code, value)
 			return

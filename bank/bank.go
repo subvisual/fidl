@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	ErrInsufficientFunds     = errors.New("insufficient funds")
-	ErrTransactionNotAllowed = errors.New("transaction not allowed")
-	ErrLockedFunds           = errors.New("locked funds")
-	ErrNothingToRefund       = errors.New("nothing to refund")
+	ErrInsufficientFunds   = errors.New("insufficient funds")
+	ErrOperationNotAllowed = errors.New("operation not allowed")
+	ErrNothingToRefund     = errors.New("nothing to refund")
+	ErrAuthNotFound        = errors.New("authorization not found")
 )
 
 type TransactionStatus int8
@@ -60,6 +60,14 @@ type Account struct {
 	UpdatedAt time.Time   `db:"updated_at"`
 }
 
+type Authorization struct {
+	ID        int64     `db:"id"`
+	UUID      uuid.UUID `db:"uuid"`
+	Balance   types.FIL `db:"account_type"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
 type Server struct {
 	HTTP *http.Server
 
@@ -94,11 +102,23 @@ type RefundBalances struct {
 	Expired   types.FIL
 }
 
+type AuthResponse struct {
+	UUID      uuid.UUID
+	Available types.FIL
+	Escrow    types.FIL
+}
+
+type VerifyParams struct {
+	UUID   uuid.UUID `validate:"required" json:"id"`
+	Amount types.FIL `validate:"required" json:"amount"`
+}
+
 type Service interface {
 	RegisterProxy(spid string, source string, price types.FIL) error
 	Deposit(address string, price types.FIL) (types.FIL, error)
 	Withdraw(address string, destination string, price types.FIL) (types.FIL, error)
 	Balance(address string) (types.FIL, types.FIL, error)
-	Authorize(address string, amount types.FIL) (uuid.UUID, types.FIL, types.FIL, error)
+	Authorize(address string, amount types.FIL) (AuthResponse, error)
 	Refund(address string) (RefundBalances, error)
+	Verify(address string, uuid uuid.UUID, amount types.FIL) error
 }
