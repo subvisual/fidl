@@ -27,8 +27,9 @@ To run the CLI: `go run cmd/cli/main.go`
 
 Available commands:
 
--   `go run cmd/cli/main.go deposit -a <amount> `
--   `go run cmd/cli/main.go withdraw -a <amount> -d <destination> `
+-   `go run cmd/cli/main.go balance -b <bank_address>`
+-   `go run cmd/cli/main.go deposit -a <amount> -b <bank_address>`
+-   `go run cmd/cli/main.go withdraw -a <amount> -d <destination> -b <bank_address>`
 
 ## Service/Bank
 
