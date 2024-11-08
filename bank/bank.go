@@ -13,6 +13,7 @@ var (
 	ErrInsufficientFunds     = errors.New("insufficient funds")
 	ErrTransactionNotAllowed = errors.New("transaction not allowed")
 	ErrLockedFunds           = errors.New("locked funds")
+	ErrNothingToRefund       = errors.New("nothing to refund")
 )
 
 type TransactionStatus int8
@@ -87,10 +88,17 @@ type RedeemParams struct {
 	/* TODO */
 }
 
+type RefundBalances struct {
+	Available types.FIL
+	Escrow    types.FIL
+	Expired   types.FIL
+}
+
 type Service interface {
 	RegisterProxy(spid string, source string, price types.FIL) error
 	Deposit(address string, price types.FIL) (types.FIL, error)
 	Withdraw(address string, destination string, price types.FIL) (types.FIL, error)
 	Balance(address string) (types.FIL, types.FIL, error)
 	Authorize(address string, amount types.FIL) (uuid.UUID, types.FIL, types.FIL, error)
+	Refund(address string) (RefundBalances, error)
 }
