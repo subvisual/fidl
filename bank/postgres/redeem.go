@@ -3,6 +3,7 @@ package postgres
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/subvisual/fidl"
@@ -20,7 +21,7 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 		SELECT *
 		FROM escrow
 		WHERE (uuid = $1 AND balance >= $2)
-		AND created_at < now() at time zone 'utc' - $3::interval
+		AND created_at < $3
 		`
 
 	depositQuery :=
@@ -53,7 +54,12 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 
 		var auth bank.Authorization
 
-		args := []any{uuid, amount, s.cfg.EscrowDeadline}
+		cfgDeadline, err := time.ParseDuration(s.cfg.EscrowDeadline)
+		if err != nil {
+			return fmt.Errorf("failed to parse escrow deadline from config: %w", err)
+		}
+
+		args := []any{uuid, amount, time.Now().UTC().Add(-cfgDeadline)}
 		if err := tx.Get(&auth, verifyAuthQuery, args...); err != nil {
 			return bank.ErrAuthNotFound
 		}
