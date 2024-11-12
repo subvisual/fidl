@@ -11,6 +11,8 @@ func Parse(cfg cli.Config) *cobra.Command {
 	rootCmd.AddCommand(newDepositCommand(cfg))
 	rootCmd.AddCommand(newWithdrawCommand(cfg))
 	rootCmd.AddCommand(newBalanceCommand(cfg))
+	rootCmd.AddCommand(newAuthorizeCommand(cfg))
+	rootCmd.AddCommand(newRefundCommand(cfg))
 
 	return rootCmd
 }

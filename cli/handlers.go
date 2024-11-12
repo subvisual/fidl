@@ -8,6 +8,45 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
+func Authorize(cfg Config, options AuthorizeOptions) error {
+	var b types.FIL // nolint:varnamelen
+	err := b.UnmarshalJSON([]byte(options.Amount))
+	if err != nil {
+		return fmt.Errorf("error unmarshalling amount data: %w", err)
+	}
+
+	depositJSON, err := json.Marshal(DepositBody{Amount: b})
+	if err != nil {
+		return fmt.Errorf("error marshalling deposit data: %w", err)
+	}
+
+	resp, err := PostRequest(cfg.Wallet, options.BankAddress, cfg.Route.Authorize, depositJSON, 30)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		authorizeResponse := AuthorizeResponse{}
+		err := json.NewDecoder(resp.Body).Decode(&authorizeResponse)
+		if err != nil {
+			return fmt.Errorf("error decoding the response body: %w", err)
+		}
+		fmt.Printf("Authorize successful, your current funds on escrow are: %s \nYour current bank balance is: %s\n", authorizeResponse.Data.Escrow, authorizeResponse.Data.FIL) // nolint:forbidigo
+
+	case http.StatusNotFound:
+		return fmt.Errorf("wallet not found")
+	case http.StatusForbidden:
+		return fmt.Errorf("not have enough funds")
+	default:
+		return fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+	}
+
+	return nil
+}
+
 func Balance(cfg Config, options BalanceOptions) error {
 	resp, err := GetRequest(cfg.Wallet, options.BankAddress, cfg.Route.Balance, 30)
 	if err != nil {
@@ -63,6 +102,33 @@ func Deposit(cfg Config, options DepositOptions) error {
 
 	case http.StatusNotFound:
 		return fmt.Errorf("wallet not found")
+	default:
+		return fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+	}
+
+	return nil
+}
+
+func Refund(cfg Config, options RefundOptions) error {
+	resp, err := GetRequest(cfg.Wallet, options.BankAddress, cfg.Route.Refund, 30)
+	if err != nil {
+		return fmt.Errorf("error creating refund request: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		refundResponse := RefundResponse{}
+		err := json.NewDecoder(resp.Body).Decode(&refundResponse)
+		if err != nil {
+			return fmt.Errorf("error decoding the response body: %w", err)
+		}
+		fmt.Printf("Funds moved from escrow to your balance: %s \nYour current bank balance is: %s \nYour current funds on escrow are: %s\n", refundResponse.Data.Expired, refundResponse.Data.FIL, refundResponse.Data.Escrow) // nolint:forbidigo
+	case http.StatusNotFound:
+		return fmt.Errorf("wallet not found")
+	case http.StatusUnprocessableEntity:
+		return fmt.Errorf("no expired funds in escrow")
 	default:
 		return fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
 	}

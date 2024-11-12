@@ -9,9 +9,11 @@ import (
 )
 
 type Route struct {
-	Balance  string `toml:"balance"`
-	Deposit  string `toml:"deposit"`
-	Withdraw string `toml:"withdraw"`
+	Balance   string `toml:"balance"`
+	Deposit   string `toml:"deposit"`
+	Withdraw  string `toml:"withdraw"`
+	Authorize string `toml:"authorize"`
+	Refund    string `toml:"refund"`
 }
 
 type Config struct {
