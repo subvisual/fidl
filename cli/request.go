@@ -61,7 +61,7 @@ func PostRequest(wallet types.Wallet, bankAddress string, route string, body []b
 func GetRequest(wallet types.Wallet, bankAddress string, route string, timeout int64) (*http.Response, error) {
 	endpoint, err := url.JoinPath(bankAddress, route)
 	if err != nil {
-		return nil, fmt.Errorf("Error joining endpoint path: %w", err)
+		return nil, fmt.Errorf("error joining endpoint path: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
@@ -69,7 +69,7 @@ func GetRequest(wallet types.Wallet, bankAddress string, route string, timeout i
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating request: %w", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	msg := []byte(time.Now().UTC().String())

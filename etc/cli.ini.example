@@ -4,6 +4,8 @@ env="development"
 balance="/api/v1/balance"
 deposit="/api/v1/deposit"
 withdraw="/api/v1/withdraw"
+authorize="/api/v1/authorize"
+refund="/api/v1/refund"
 
 [wallet]
 path="./etc/cli.key"

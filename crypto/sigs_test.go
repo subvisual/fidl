@@ -10,6 +10,7 @@ import (
 )
 
 func TestVerify(t *testing.T) {
+	t.Parallel()
 	randMsg := make([]byte, 32)
 	_, _ = rand.Read(randMsg)
 
@@ -24,6 +25,7 @@ func TestVerify(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
+	t.Parallel()
 	randMsg := make([]byte, 32)
 	_, _ = rand.Read(randMsg)
 
