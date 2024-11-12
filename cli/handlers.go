@@ -34,7 +34,7 @@ func Authorize(cfg Config, options AuthorizeOptions) error {
 		if err != nil {
 			return fmt.Errorf("error decoding the response body: %w", err)
 		}
-		fmt.Printf("Authorize successful, your current funds on escrow are: %s \nYour current bank balance is: %s\n", authorizeResponse.Data.Escrow, authorizeResponse.Data.FIL) // nolint:forbidigo
+		fmt.Printf("Authorize successful, your current funds on escrow are: %s \nYour current bank balance is: %s\nAuth id: %s\n", authorizeResponse.Data.Escrow, authorizeResponse.Data.FIL, authorizeResponse.Data.ID) // nolint:forbidigo
 
 	case http.StatusNotFound:
 		return fmt.Errorf("wallet not found")
