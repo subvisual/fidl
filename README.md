@@ -54,7 +54,7 @@ HTTP server API featuring the following endpoints:
 Migrations are managed by [go-migrate](https://github.com/golang-migrate/migrate#cli-usage)
 
 To run migrations:
-`migrate -path=./postgres/migrations -database=$DSN up`
+`migrate -path=./bank/postgres/migrations -database=$DSN up`
 
 -   `$DSN` should contain your database data source string
 
