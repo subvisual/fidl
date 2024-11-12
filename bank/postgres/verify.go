@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/subvisual/fidl"
@@ -15,7 +16,7 @@ func (s BankService) Verify(address string, uuid uuid.UUID, amount types.FIL) er
 		SELECT *
 		FROM escrow
 		WHERE (uuid = $1 AND balance >= $2)
-		AND created_at < now() at time zone 'utc' - $3::interval
+		AND created_at < $3
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
@@ -30,7 +31,13 @@ func (s BankService) Verify(address string, uuid uuid.UUID, amount types.FIL) er
 
 		var auth bank.Authorization
 
-		args := []any{uuid, amount, s.cfg.EscrowDeadline}
+		cfgDeadline, err := time.ParseDuration(s.cfg.EscrowDeadline)
+		if err != nil {
+			return fmt.Errorf("failed to parse escrow deadline from config: %w", err)
+		}
+
+		args := []any{uuid, amount, time.Now().UTC().Add(-cfgDeadline)}
+
 		if err := tx.Get(&auth, query, args...); err != nil {
 			return bank.ErrAuthNotFound
 		}

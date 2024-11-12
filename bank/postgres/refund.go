@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
@@ -18,14 +19,14 @@ func (s BankService) Refund(address string) (bank.RefundResponse, error) {
 		SELECT COALESCE(SUM(balance), 0) AS expired_value_sum
 		FROM escrow
 		WHERE id = $1
-		AND created_at < now() at time zone 'utc' - $2::interval
+		AND created_at < $2
 		`
 
 	deleteExpiredQuery :=
 		`
 		DELETE FROM escrow
 		WHERE id = $1
-		AND created_at < now() at time zone 'utc' - $2::interval
+		AND created_at < $2
 		`
 
 	updateBalancesQuery :=
@@ -52,7 +53,12 @@ func (s BankService) Refund(address string) (bank.RefundResponse, error) {
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		args := []any{account.ID, s.cfg.EscrowDeadline}
+		cfgDeadline, err := time.ParseDuration(s.cfg.EscrowDeadline)
+		if err != nil {
+			return fmt.Errorf("failed to parse escrow deadline from config: %w", err)
+		}
+
+		args := []any{account.ID, time.Now().UTC().Add(-cfgDeadline)}
 		if err := tx.QueryRow(expiredQuery, args...).Scan(&expiredSum); err != nil {
 			return fmt.Errorf("failed to get expired balance: %w", err)
 		}
