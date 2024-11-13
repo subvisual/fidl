@@ -42,8 +42,8 @@ HTTP server API featuring the following endpoints:
 -   GET `/api/v1/healthcheck`: healthcheck to verify if the server is properly running
 -   POST `/api/v1/register`: registers a proxy on the bank
 -   POST `/api/v1/deposit`: client deposits FIL funds on the bank
--   GET `/api/v1/withdraw`: client withdraws FIL funds from the bank
--   POST `/api/v1/balance`: checks client's balance
+-   POST `/api/v1/withdraw`: client withdraws FIL funds from the bank
+-   GET `/api/v1/balance`: checks client's balance
 -   POST `/api/v1/authorize`: authorizes transaction
 -   GET `/api/v1/refund`: client refunds all the expired FIL funds on escrow
 -   POST `/api/v1/redeem`: proxy redeems funds of transaction
