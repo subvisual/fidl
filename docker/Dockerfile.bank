@@ -1,0 +1,32 @@
+FROM golang:1.23-bookworm AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ca-certificates tzdata; \
+  rm -rf /var/lib/apt/lists/*; \
+  go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest; \
+  go build -ldflags="-w -s" -o /go/bin/bank ./cmd/bank
+
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ca-certificates tzdata gosu; \
+  rm -rf /var/lib/apt/lists/*; \
+  groupadd runner; \
+  useradd -r -u 1000 -g runner runner
+
+COPY --from=builder --chmod=755 /go/bin/bank /go/bin/migrate ./
+COPY --from=builder /app/bank/postgres ./postgres
+COPY --chmod=755 ./docker/bank.sh ./
+
+EXPOSE 8080
+
+ENTRYPOINT ["/app/bank.sh"]
+CMD ["/app/bank", "-config", "/etc/bank.ini"]

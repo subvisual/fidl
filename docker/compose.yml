@@ -1,0 +1,60 @@
+---
+
+name: fidl
+
+services:
+  pg17:
+    image: postgres:17
+    container_name: pg17
+    environment:
+      POSTGRES_PASSWORD: 37191f14f521f970
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pg17:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432
+    networks:
+      - devnet
+
+  bank:
+    depends_on:
+      pg17:
+        condition: service_healthy
+    container_name: bank
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.bank
+    volumes:
+      - ../local/bank.ini:/etc/bank.ini
+    ports:
+      - 127.0.0.1:8081:8080
+    networks:
+      - devnet
+
+  proxy:
+    depends_on:
+      bank:
+        condition: service_started
+    container_name: proxy
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.proxy
+    volumes:
+      - ../local/proxy.ini:/etc/proxy.ini
+      - ../etc/proxy.key:/etc/proxy.key
+    ports:
+      - 127.0.0.1:8082:8080
+    networks:
+      - devnet
+
+volumes:
+  pg17:
+
+networks:
+  devnet:
+    driver: bridge
+    external: true

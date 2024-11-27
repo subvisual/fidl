@@ -1,0 +1,30 @@
+FROM golang:1.23-bookworm AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ca-certificates tzdata; \
+  rm -rf /var/lib/apt/lists/*; \
+  go build -ldflags="-w -s" -o /go/bin/proxy ./cmd/proxy
+
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends ca-certificates tzdata gosu; \
+  rm -rf /var/lib/apt/lists/*; \
+  groupadd runner; \
+  useradd -r -u 1000 -g runner runner
+
+COPY --from=builder --chmod=755 /go/bin/proxy ./
+COPY --chmod=755 ./docker/proxy.sh ./
+
+EXPOSE 8080
+
+ENTRYPOINT ["/app/proxy.sh"]
+CMD ["/app/proxy", "-config", "/etc/proxy.ini"]
