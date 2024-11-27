@@ -16,7 +16,8 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
+    # - exportloopref
+    - copyloopvar
     - forbidigo
     - forcetypeassert
     - gci
@@ -104,7 +105,7 @@ linters-settings:
     #   - tx ...fidl.Queryable
     #   - id int64
   ireturn:
-    allow: 
+    allow:
       - Queryable
       - error
       - driver.Value

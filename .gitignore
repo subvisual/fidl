@@ -24,6 +24,9 @@
 
 !etc/*.ini.example
 !etc/*.key.example
+!tests/etc/*.key.example
+
+!docker/*
 
 # !Makefile
 
