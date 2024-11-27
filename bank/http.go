@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/filecoin-project/go-address"
 	"github.com/subvisual/fidl/http/jsend"
 	"github.com/subvisual/fidl/types"
 )
@@ -33,13 +32,13 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 		case errors.Is(err, ErrAuthNotFound):
 			status, body = http.StatusNotFound, envelope{"bank": "no valid authorization"}
 		default:
-			s.HTTP.JSON(w, r, code, value)
+			s.Server.JSON(w, r, code, value)
 			return
 		}
 
-		s.HTTP.LogDebug(r, err)
+		s.LogDebug(r, err)
 	} else {
-		s.HTTP.JSON(w, r, code, value)
+		s.Server.JSON(w, r, code, value)
 		return
 	}
 
@@ -47,7 +46,7 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 	payload := jsend.Fail(body)
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		s.HTTP.LogError(r, err)
+		s.LogError(r, err)
 	}
 }
 
@@ -71,10 +70,10 @@ func ParseHeader(r *http.Request) (*types.Signature, types.Address, []byte, erro
 		return nil, types.Address{}, nil, fmt.Errorf("failed to unmarshal binary signature: %w", err)
 	}
 
-	addr, err := address.NewFromString(dataPub)
+	addr, err := types.NewAddressFromString(dataPub)
 	if err != nil {
 		return nil, types.Address{}, nil, fmt.Errorf("failed to parse address from header: %w", err)
 	}
 
-	return &sig, types.Address{Address: &addr}, binMsg, nil
+	return &sig, addr, binMsg, nil
 }

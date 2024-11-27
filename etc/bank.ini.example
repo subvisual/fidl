@@ -7,8 +7,8 @@ path="logs/bank.log"
 [http]
 address="127.0.0.1"
 fqdn="localhost"
-listen-port=8080
-port=8080
+listen-port=8090
+port=8090
 read-timeout=15
 write-timeout=15
 shutdown-timeout=10
@@ -24,5 +24,5 @@ max-idle-time="15m"
 address="f1qbvbikeuozxgoop5bc7nkcokapslxxdy2gucfqa"
 
 [escrow]
-address="f1qbvbikeuozxgoop5bc7nkcokapslxxdy2gucfqa"
+address="f1bpzzps6xxcxubq6idqravdcisdpzqemnahxdeoq"
 deadline="24h"

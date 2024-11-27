@@ -32,13 +32,24 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
   			RETURNING balance
 		`
 
+	deleteBalanceEntryQuery :=
+		`
+		DELETE FROM balances WHERE id = $1
+		`
+
+	deleteAccountEntryQuery :=
+		`
+		DELETE FROM accounts WHERE id = $1
+		`
+
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
 		account, err := getAccountByAddress(address, tx)
 		if err != nil {
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		balance, _, err = s.Balance(address)
+		var escrow types.FIL
+		balance, escrow, err = s.Balance(address)
 		if err != nil {
 			return err
 		}
@@ -52,9 +63,19 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, destination, amount.Int.String(), bank.TransactionCompleted}
+		args = []any{s.cfg.WalletAddress, destination, amount.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
+		}
+
+		if account.Type == Client && balance.Sign() == 0 && escrow.Sign() == 0 {
+			if _, err := tx.Exec(deleteBalanceEntryQuery, account.ID); err != nil {
+				return fmt.Errorf("failed to delete client balance entry during withdraw: %w", err)
+			}
+
+			if _, err := tx.Exec(deleteAccountEntryQuery, account.ID); err != nil {
+				return fmt.Errorf("failed to delete client account entry during withdraw: %w", err)
+			}
 		}
 
 		return nil

@@ -9,9 +9,10 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthResponse, error) {
+func (s BankService) Authorize(address string, proxy string) (bank.AuthModel, error) {
 	var balance types.FIL
 	var escrow types.FIL
+	var cost types.FIL
 	var id uuid.UUID
 
 	withdrawQuery :=
@@ -25,10 +26,16 @@ func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthRespo
   			RETURNING balance
 		`
 
+	spCostQuery :=
+		`
+		SELECT price FROM storage_providers
+		WHERE id = $1
+		`
+
 	escrowQuery :=
 		`
-		INSERT INTO escrow (id, uuid, balance)
-		VALUES ($1, $2, $3)
+		INSERT INTO escrow (id, uuid, balance, proxy, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING uuid, balance
 		`
 
@@ -42,7 +49,16 @@ func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthRespo
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
 		account, err := getAccountByAddress(address, tx)
 		if err != nil {
-			return fmt.Errorf("failed to fetch account: %w", err)
+			return fmt.Errorf("failed to fetch cli account: %w", err)
+		}
+
+		spAccount, err := getAccountByAddress(proxy, tx)
+		if err != nil {
+			return fmt.Errorf("failed to fetch sp account: %w", err)
+		}
+
+		if err := tx.QueryRow(spCostQuery, spAccount.ID).Scan(&cost); err != nil {
+			return fmt.Errorf("failed to fetch sp price: %w", err)
 		}
 
 		balance, _, err = s.Balance(address)
@@ -50,11 +66,11 @@ func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthRespo
 			return err
 		}
 
-		if amount.Cmp(balance.Int) == 1 {
+		if cost.Cmp(balance.Int) == 1 {
 			return bank.ErrInsufficientFunds
 		}
 
-		args := []any{account.ID, amount.Int.String()}
+		args := []any{account.ID, cost.Int.String()}
 		if err := tx.QueryRow(withdrawQuery, args...).Scan(&balance); err != nil {
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
@@ -64,12 +80,12 @@ func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthRespo
 			return fmt.Errorf("failed to generate v7 uuid: %w", err)
 		}
 
-		args = []any{account.ID, uuid, amount.Int.String()}
+		args = []any{account.ID, uuid, cost.Int.String(), proxy, AuthorizationOpen}
 		if err := tx.QueryRow(escrowQuery, args...).Scan(&id, &escrow); err != nil {
 			return fmt.Errorf("failed to deposit to escrow: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, s.cfg.EscrowAddress, amount.Int.String(), bank.TransactionCompleted}
+		args = []any{s.cfg.WalletAddress, s.cfg.EscrowAddress, cost.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during authorize: %w", err)
 		}
@@ -77,10 +93,10 @@ func (s BankService) Authorize(address string, amount types.FIL) (bank.AuthRespo
 		return nil
 	})
 	if err != nil {
-		return bank.AuthResponse{}, err
+		return bank.AuthModel{}, err
 	}
 
-	return bank.AuthResponse{
+	return bank.AuthModel{
 		UUID:      id,
 		Available: balance,
 		Escrow:    escrow,
