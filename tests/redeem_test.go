@@ -94,7 +94,7 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 			finalEndpoint := url.URL{
 				Scheme: "http",
 				Host:   fmt.Sprintf("%s:%d", localhost, bankPort),
-				Path:   proxyCfg.Route.BankVerify,
+				Path:   proxyCfg.Route.BankRedeem,
 			}
 
 			ctx := context.Background()
