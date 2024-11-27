@@ -13,7 +13,6 @@ import (
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/http"
 	"github.com/subvisual/fidl/proxy"
-	"github.com/subvisual/fidl/proxy/request"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -41,13 +40,20 @@ func main() {
 
 	zapcfg := zap.NewProductionConfig()
 	zapcfg.OutputPaths = []string{cfg.Logger.Path, "stderr"}
-	zapcfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+
+	var err error
+	zapcfg.Level, err = zap.ParseAtomicLevel(cfg.Logger.Level)
+	if err != nil {
+		log.Print(err, ", default to: ", zapcore.DebugLevel.String())
+		zapcfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	}
+
 	zapcfg.EncoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.UTC().Format(time.RFC3339))
 	})
 
 	abs, _ := filepath.Abs(cfg.Logger.Path)
-	err := os.MkdirAll(path.Dir(abs), 0750)
+	err = os.MkdirAll(path.Dir(abs), 0750)
 	if err != nil && !os.IsExist(err) {
 		log.Fatal(err)
 	}
@@ -72,8 +78,19 @@ func main() {
 		Env: cfg.Env,
 	})
 
-	proxyCtx := proxy.Server{Server: httpServer}
+	proxyCtx := proxy.Server{
+		Bank:          cfg.Bank,
+		ExternalRoute: cfg.Route,
+		Provider:      cfg.Provider,
+		Server:        httpServer,
+		Wallet:        cfg.Wallet,
+	}
 	proxyCtx.RegisterValidators()
+
+	forwarder := proxy.NewForwarder(cfg.Forwarder)
+	forwarder.SetErrorHandler(proxyCtx.HandleForwarderError)
+	forwarder.SetResponseTransformer(proxyCtx.HandleForwarderResponse)
+	proxyCtx.Forwarder = forwarder
 
 	httpServer.Log = logger
 	httpServer.RegisterMiddleWare()
@@ -88,7 +105,7 @@ func main() {
 
 	logger.Info("Server started", zap.String("addr", cfg.HTTP.Addr), zap.Int("port", cfg.HTTP.ListenPort))
 
-	if err := request.Register(cfg); err != nil {
+	if err := proxy.Register(cfg); err != nil {
 		logger.Fatal("Failed to register", zap.Error(err))
 	}
 

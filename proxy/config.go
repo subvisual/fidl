@@ -3,6 +3,7 @@ package proxy
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/subvisual/fidl/http"
@@ -14,16 +15,32 @@ type Bank struct {
 }
 
 type Provider struct {
-	Cost uint64 `toml:"cost"`
+	Cost       types.FIL `toml:"cost"`
+	SectorSize int64     `toml:"sector-size"`
+}
+
+type ForwarderConfig struct {
+	DisableCompression bool          `toml:"disable-compression"`
+	IdleConnTimeout    time.Duration `toml:"idle-conn-timeout"`
+	HeaderTimeout      time.Duration `toml:"header-timeout"`
+	MaxIdleConns       int           `toml:"max-idle-conns"`
+	Upstream           string        `toml:"upstream"`
+}
+
+type Route struct {
+	BankRedeem string `toml:"bank-redeem"`
+	BankVerify string `toml:"bank-verify"`
 }
 
 type Config struct {
-	Env      string          `toml:"env"`
-	Logger   http.Logger     `toml:"logger"`
-	HTTP     http.HTTP       `toml:"http"`
-	Wallet   types.Wallet    `toml:"wallet"`
-	Bank     map[string]Bank `toml:"bank"`
-	Provider Provider        `toml:"provider"`
+	Bank      map[string]Bank `toml:"bank"`
+	Env       string          `toml:"env"`
+	Forwarder ForwarderConfig `toml:"forwarder"`
+	HTTP      http.HTTP       `toml:"http"`
+	Logger    http.Logger     `toml:"logger"`
+	Provider  Provider        `toml:"provider"`
+	Route     Route           `toml:"route"`
+	Wallet    types.Wallet    `toml:"wallet"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

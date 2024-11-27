@@ -69,6 +69,8 @@ func (s *Server) JSON(w http.ResponseWriter, r *http.Request, code int, value an
 		payload = jsend.Ok(body)
 	case status >= 400 && status < 500:
 		payload = jsend.Fail(body)
+	case status > 500:
+		payload = jsend.Fail(body)
 	default:
 		payload = jsend.Error("The server encountered a problem and could not process your request")
 	}

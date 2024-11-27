@@ -59,6 +59,11 @@ func New(cfg *Config) *Server {
 	return srv
 }
 
+func (s *Server) Decode(dst any, src map[string][]string) error {
+	// nolint:wrapcheck
+	return s.decoder.Decode(dst, src)
+}
+
 func (s *Server) Host() string {
 	if s.cfg.Port == 80 || s.cfg.Port == 443 {
 		return s.cfg.Fqdn

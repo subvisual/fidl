@@ -7,22 +7,34 @@ path="logs/proxy.log"
 [http]
 address="127.0.0.1"
 fqdn="localhost"
-listen-port=4000
-port=4000
+listen-port=8091
+port=8091
 read-timeout=15
 write-timeout=15
 shutdown-timeout=10
 tls=false
 
+[forwarder]
+disable-compression=true
+idle-conn-timeout="90s"
+header-timeout="10s"
+max-idle-conns=100
+upstream="http://localhost:7777"
+
 [wallet]
 path="./etc/proxy.key"
-address="f1xccu2bjjxu5e7lolwjlzh2rdkg2rdslwgkk7dci"
+address="f15nrbm4j7ptwl5tdbivasxnqypceh3cb4htpwlta"
 
 [bank.one]
-register="http://localhost:8080/api/v1/register"
+register="http://localhost:8090/api/v1/register"
 
 [bank.two]
-register="http://localhost:8080/api/v1/register"
+register="http://localhost:8091/api/v1/register"
 
 [provider]
 cost=100
+sector-size=34359738368
+
+[route]
+bank-redeem="/api/v1/redeem"
+bank-verify="/api/v1/verify"
