@@ -100,7 +100,7 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 			ctx := context.Background()
 			err := proxy.Redeem(ctx, finalEndpoint, proxyCfg.Wallet, res.Data.ID, cost)
 			if err != nil {
-				t.Errorf("failed to verify: %v", err)
+				t.Errorf("failed to redeem: %v", err)
 			}
 
 			balanceOpts := cli.BalanceOptions{
