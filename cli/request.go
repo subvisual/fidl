@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	fcrypto "github.com/subvisual/fidl/crypto"
+	"github.com/google/uuid"
+	"github.com/subvisual/fidl/crypto"
 	"github.com/subvisual/fidl/types"
 )
 
-func PostRequest(wallet types.Wallet, bankAddress string, route string, body []byte, timeout int64) (*http.Response, error) {
+func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte, timeout int64) (*http.Response, error) {
 	endpoint, err := url.JoinPath(bankAddress, route)
 	if err != nil {
 		return nil, fmt.Errorf("error joining endpoint path: %w", err)
@@ -29,12 +30,7 @@ func PostRequest(wallet types.Wallet, bankAddress string, route string, body []b
 
 	msg := append([]byte(time.Now().UTC().String()), body...)
 
-	ki, err := types.ReadWallet(wallet)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read wallet: %w", err)
-	}
-
-	sig, err := fcrypto.Sign(ki.PrivateKey, types.SigTypeSecp256k1, msg)
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
@@ -46,7 +42,7 @@ func PostRequest(wallet types.Wallet, bankAddress string, route string, body []b
 
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("sig", hex.EncodeToString(sigBytes))
-	req.Header.Add("pub", wallet.Address.String())
+	req.Header.Add("pub", addr.String())
 	req.Header.Add("msg", hex.EncodeToString(msg))
 
 	client := http.DefaultClient
@@ -58,7 +54,7 @@ func PostRequest(wallet types.Wallet, bankAddress string, route string, body []b
 	return resp, nil
 }
 
-func GetRequest(wallet types.Wallet, bankAddress string, route string, timeout int64) (*http.Response, error) {
+func GetRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, timeout int64) (*http.Response, error) {
 	endpoint, err := url.JoinPath(bankAddress, route)
 	if err != nil {
 		return nil, fmt.Errorf("error joining endpoint path: %w", err)
@@ -74,12 +70,7 @@ func GetRequest(wallet types.Wallet, bankAddress string, route string, timeout i
 
 	msg := []byte(time.Now().UTC().String())
 
-	ki, err := types.ReadWallet(wallet)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read wallet: %w", err)
-	}
-
-	sig, err := fcrypto.Sign(ki.PrivateKey, types.SigTypeSecp256k1, msg)
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
@@ -91,8 +82,64 @@ func GetRequest(wallet types.Wallet, bankAddress string, route string, timeout i
 
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("sig", hex.EncodeToString(sigBytes))
-	req.Header.Add("pub", wallet.Address.String())
+	req.Header.Add("pub", addr.String())
 	req.Header.Add("msg", hex.EncodeToString(msg))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error making GET request: %w", err)
+	}
+
+	return resp, nil
+}
+
+func ProxyRetrieveRequest(proxyAddress string, options RetrievalOptions, route string, timeout int64) (*http.Response, error) {
+	endpoint, err := url.JoinPath(proxyAddress, route, options.Piece)
+	if err != nil {
+		return nil, fmt.Errorf("error joining endpoint path: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	uuid, err := uuid.Parse(options.Authorization)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing authorization string to uuid: %w", err)
+	}
+
+	q := req.URL.Query()
+	q.Add("bank", options.BankAddress)
+	q.Add("authorization", uuid.String())
+	req.URL.RawQuery = q.Encode()
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error making GET request: %w", err)
+	}
+
+	return resp, nil
+}
+
+func ProxyBanksRequest(proxyAddress string, route string, timeout int64) (*http.Response, error) {
+	endpoint, err := url.JoinPath(proxyAddress, route)
+	if err != nil {
+		return nil, fmt.Errorf("error joining endpoint path: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

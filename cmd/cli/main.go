@@ -1,8 +1,9 @@
 package main
 
 import (
-	"flag"
+	"log"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/cli"
 	"github.com/subvisual/fidl/cli/commands"
@@ -18,12 +19,12 @@ func main() {
 	fidl.Version = version
 	fidl.Commit = commit
 
-	var cfgFilePath string
-	flag.StringVar(&cfgFilePath, "config", "etc/cli.ini", "path to configuration file")
-	flag.Parse()
+	cl := cli.CLI{Validate: validator.New()}
 
-	cfg := cli.LoadConfiguration(cfgFilePath)
+	if err := cli.RegisterValidators(cl); err != nil {
+		log.Fatalf("Failed to register validators: %v", err)
+	}
 
-	c := commands.Parse(cfg)
-	_ = c.Execute()
+	cmd := commands.Parse(cl)
+	_ = cmd.Execute()
 }

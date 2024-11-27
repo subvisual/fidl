@@ -2,10 +2,12 @@ env="development"
 
 [route]
 balance="/api/v1/balance"
+banks="/api/v1/banks"
 deposit="/api/v1/deposit"
 withdraw="/api/v1/withdraw"
-authorize="/api/v1/authorize"
+retrieval="/api/v1/fetch"
 refund="/api/v1/refund"
+authorize="/api/v1/authorize"
 
 [wallet]
 path="./etc/cli.key"
