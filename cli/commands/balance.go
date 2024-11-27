@@ -5,17 +5,25 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/subvisual/fidl/cli"
+	"github.com/subvisual/fidl/types"
 )
 
-func newBalanceCommand(cfg cli.Config) *cobra.Command {
+func newBalanceCommand() *cobra.Command {
 	opts := cli.BalanceOptions{}
 	balanceCmd := &cobra.Command{
 		Use:   "balance",
-		Short: "To check the client's account balance at a specified bank",
-		Long: `This command checks the client's account balance at a specified bank:
-	`,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			err := cli.Balance(cfg, opts)
+		Short: "To check the client's account balance at a specified bank.",
+		Long:  `This command checks the client's account balance at a specified bank.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfgPath, _ := cmd.Flags().GetString("config")
+			cfg := cli.LoadConfiguration(cfgPath)
+
+			ki, err := types.ReadWallet(cfg.Wallet)
+			if err != nil {
+				return fmt.Errorf("failed to read wallet: %w", err)
+			}
+
+			_, err = cli.Balance(ki, cfg.Wallet.Address, cfg.Route.Balance, opts)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}

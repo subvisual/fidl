@@ -1,10 +1,13 @@
 package cli
 
-import "github.com/subvisual/fidl/types"
+import (
+	"github.com/google/uuid"
+	"github.com/subvisual/fidl/types"
+)
 
 type AuthorizeOptions struct {
-	Amount      string `json:"amount"`
 	BankAddress string `json:"bankAddress"`
+	Proxy       string `json:"proxy"`
 }
 
 type WithdrawOptions struct {
@@ -26,13 +29,33 @@ type RefundOptions struct {
 	BankAddress string `json:"bankAddress"`
 }
 
+type RetrievalOptions struct {
+	ProxyAddress  string `json:"proxyAddress"`
+	BankAddress   string `json:"bank"`
+	Piece         string `json:"piece"`
+	Authorization string `json:"authorization"`
+}
+
+type BanksOptions struct {
+	ProxyAddress string `json:"proxyAddress"`
+}
+
+type AuthorizeBody struct {
+	Proxy string `validate:"is-filecoin-address" json:"proxy"`
+}
+
 type WithdrawBody struct {
 	Amount      types.FIL `json:"amount"`
-	Destination string    `json:"dst"`
+	Destination string    `validate:"is-filecoin-address" json:"dst"`
 }
 
 type DepositBody struct {
 	Amount types.FIL `json:"amount"`
+}
+
+type RetrievalBody struct {
+	Bank          string    `json:"bank"`
+	Authorization uuid.UUID `json:"authorization"`
 }
 
 type TransactionResponseData struct {
@@ -49,15 +72,25 @@ type BalanceResponseData struct {
 	Escrow types.FIL `json:"escrow"`
 }
 
+type Bank struct {
+	URL  string    `json:"url"`
+	Cost types.FIL `json:"cost"`
+}
+
 type BalanceResponse struct {
 	Status string              `json:"status"`
 	Data   BalanceResponseData `json:"data"`
 }
 
+type BanksResponse struct {
+	Status string `json:"status"`
+	Data   []Bank `json:"data"`
+}
+
 type AuthorizeResponseData struct {
 	FIL    types.FIL `json:"fil"`
 	Escrow types.FIL `json:"escrow"`
-	ID     string    `json:"id"`
+	ID     uuid.UUID `json:"id"`
 }
 
 type AuthorizeResponse struct {

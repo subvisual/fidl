@@ -5,17 +5,25 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/subvisual/fidl/cli"
+	"github.com/subvisual/fidl/types"
 )
 
-func newAuthorizeCommand(cfg cli.Config) *cobra.Command {
+func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 	opts := cli.AuthorizeOptions{}
 	authorizeCmd := &cobra.Command{
 		Use:   "authorize",
 		Short: "To authorize a storage provider to spend a specific amount of FIL to make reedems.",
-		Long: `This command allocates funds from your wallet to be spent by a storage provider to reedem files to you. For example:
-	`,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			err := cli.Authorize(cfg, opts)
+		Long:  `This command allocates funds from your wallet to be spent by a storage provider to reedem files to you.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfgPath, _ := cmd.Flags().GetString("config")
+			cfg := cli.LoadConfiguration(cfgPath)
+
+			ki, err := types.ReadWallet(cfg.Wallet)
+			if err != nil {
+				return fmt.Errorf("failed to read wallet: %w", err)
+			}
+
+			_, err = cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, opts, cl)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -23,10 +31,11 @@ func newAuthorizeCommand(cfg cli.Config) *cobra.Command {
 			return nil
 		},
 	}
-	authorizeCmd.Flags().StringVarP(&opts.Amount, "amount", "a", "", "The amount of funds to transfer")
+
 	authorizeCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
-	cobra.CheckErr(authorizeCmd.MarkFlagRequired("amount"))
+	authorizeCmd.Flags().StringVarP(&opts.Proxy, "proxy", "p", "", "The proxy address")
 	cobra.CheckErr(authorizeCmd.MarkFlagRequired("bank"))
+	cobra.CheckErr(authorizeCmd.MarkFlagRequired("proxy"))
 
 	return authorizeCmd
 }

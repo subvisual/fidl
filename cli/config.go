@@ -5,21 +5,28 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/go-playground/validator/v10"
 	"github.com/subvisual/fidl/types"
 )
 
 type Route struct {
 	Balance   string `toml:"balance"`
+	Banks     string `toml:"banks"`
 	Deposit   string `toml:"deposit"`
 	Withdraw  string `toml:"withdraw"`
 	Authorize string `toml:"authorize"`
 	Refund    string `toml:"refund"`
+	Retrieval string `toml:"retrieval"`
 }
 
 type Config struct {
 	Env    string       `toml:"env"`
 	Route  Route        `toml:"route"`
 	Wallet types.Wallet `toml:"wallet"`
+}
+
+type CLI struct {
+	Validate *validator.Validate
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

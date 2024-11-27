@@ -5,18 +5,25 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/subvisual/fidl/cli"
+	"github.com/subvisual/fidl/types"
 )
 
-func newWithdrawCommand(cfg cli.Config) *cobra.Command {
+func newWithdrawCommand(cl cli.CLI) *cobra.Command {
 	opts := cli.WithdrawOptions{}
 	withdrawCmd := &cobra.Command{
 		Use:   "withdraw",
 		Short: "To withdraw FIL from the client's bank account.",
-		Long: `This command transfers a specified amount of FIL from the client's bank account to their 
-	own wallet. For example:
-	`,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			err := cli.Withdraw(cfg, opts)
+		Long:  `This command transfers a specified amount of FIL from the client's bank account to their own wallet.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfgPath, _ := cmd.Flags().GetString("config")
+			cfg := cli.LoadConfiguration(cfgPath)
+
+			ki, err := types.ReadWallet(cfg.Wallet)
+			if err != nil {
+				return fmt.Errorf("failed to read wallet: %w", err)
+			}
+
+			_, err = cli.Withdraw(ki, cfg.Wallet.Address, cfg.Route.Withdraw, opts, cl)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
