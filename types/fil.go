@@ -11,7 +11,7 @@ type FIL struct {
 	types.FIL
 }
 
-func (b *FIL) Scan(value interface{}) error {
+func (b *FIL) Scan(value any) error {
 	if value == nil {
 		b = nil
 	}

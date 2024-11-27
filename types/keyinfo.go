@@ -73,7 +73,7 @@ func ReadWallet(wallet Wallet) (KeyInfo, error) {
 	}
 
 	if err := json.Unmarshal(pkOut, &keyInfo); err != nil {
-		return KeyInfo{}, fmt.Errorf("failed to unmarshal private key: %w", err)
+		return KeyInfo{}, fmt.Errorf("failed to convert private key: %w", err)
 	}
 
 	return keyInfo, nil
