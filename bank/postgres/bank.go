@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/subvisual/fidl"
-	"github.com/subvisual/fidl/bank"
 )
 
 type BankConfig struct {
@@ -25,7 +24,7 @@ func NewBankService(db *DB, cfg *BankConfig) *BankService {
 	}
 }
 
-func getAccountByAddress(address string, tx fidl.Queryable) (*bank.Account, error) {
+func getAccountByAddress(address string, tx fidl.Queryable) (*Account, error) {
 	query :=
 		`
 		SELECT *
@@ -33,7 +32,7 @@ func getAccountByAddress(address string, tx fidl.Queryable) (*bank.Account, erro
 		WHERE wallet_address = $1
 		`
 
-	var account bank.Account
+	var account Account
 	if err := tx.Get(&account, query, address); err != nil {
 		return nil, fmt.Errorf("failed to fetch account by wallet address: %w", err)
 	}

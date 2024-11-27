@@ -41,13 +41,20 @@ func main() {
 
 	zapcfg := zap.NewProductionConfig()
 	zapcfg.OutputPaths = []string{cfg.Logger.Path, "stderr"}
-	zapcfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+
+	var err error
+	zapcfg.Level, err = zap.ParseAtomicLevel(cfg.Logger.Level)
+	if err != nil {
+		log.Print(err, ", default to: ", zapcore.DebugLevel.String())
+		zapcfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	}
+
 	zapcfg.EncoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.UTC().Format(time.RFC3339))
 	})
 
 	abs, _ := filepath.Abs(cfg.Logger.Path)
-	err := os.MkdirAll(path.Dir(abs), 0750)
+	err = os.MkdirAll(path.Dir(abs), 0750)
 	if err != nil && !os.IsExist(err) {
 		log.Fatal(err)
 	}
@@ -79,7 +86,7 @@ func main() {
 		Env: cfg.Env,
 	})
 
-	bankCtx := bank.Server{HTTP: httpServer}
+	bankCtx := bank.Server{Server: httpServer}
 	bankCtx.BankService = postgres.NewBankService(db, &postgres.BankConfig{
 		WalletAddress:  cfg.Wallet.Address.String(),
 		EscrowAddress:  cfg.Escrow.Address.String(),
@@ -88,7 +95,7 @@ func main() {
 	bankCtx.RegisterValidators()
 
 	httpServer.Log = logger
-	httpServer.RegisterMiddleWare(bank.AuthenticationCtx())
+	httpServer.RegisterMiddleWare()
 	httpServer.RegisterRoutes(bankCtx.Routes)
 
 	if err := httpServer.Run(); err != nil {

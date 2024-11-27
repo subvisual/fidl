@@ -9,7 +9,7 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Refund(address string) (bank.RefundResponse, error) {
+func (s BankService) Refund(address string) (bank.RefundModel, error) {
 	var expiredSum types.FIL
 	var balance types.FIL
 	var escrow types.FIL
@@ -76,7 +76,7 @@ func (s BankService) Refund(address string) (bank.RefundResponse, error) {
 			return fmt.Errorf("failed to update balances: %w", err)
 		}
 
-		args = []any{s.cfg.EscrowAddress, s.cfg.WalletAddress, expiredSum.Int.String(), bank.TransactionCompleted}
+		args = []any{s.cfg.EscrowAddress, s.cfg.WalletAddress, expiredSum.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during refund: %w", err)
 		}
@@ -84,10 +84,10 @@ func (s BankService) Refund(address string) (bank.RefundResponse, error) {
 		return nil
 	})
 	if err != nil {
-		return bank.RefundResponse{}, err
+		return bank.RefundModel{}, err
 	}
 
-	return bank.RefundResponse{
+	return bank.RefundModel{
 		Expired:   expiredSum,
 		Available: balance,
 		Escrow:    escrow,

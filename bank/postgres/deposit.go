@@ -37,7 +37,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
-		args := []any{address, bank.Client}
+		args := []any{address, Client}
 		if _, err := tx.Exec(insertAccountQuery, args...); err != nil {
 			return fmt.Errorf("failed to add account entry: %w", err)
 		}
@@ -47,7 +47,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 			return fmt.Errorf("failed to fetch account: %w", err)
 		}
 
-		if account.Type == bank.StorageProvider {
+		if account.Type == StorageProvider {
 			return bank.ErrOperationNotAllowed
 		}
 
@@ -56,7 +56,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 			return fmt.Errorf("failed to deposit balance: %w", err)
 		}
 
-		args = []any{address, s.cfg.WalletAddress, amount.Int.String(), bank.TransactionCompleted}
+		args = []any{address, s.cfg.WalletAddress, amount.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during deposit: %w", err)
 		}

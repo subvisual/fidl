@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/subvisual/fidl"
-	"github.com/subvisual/fidl/bank"
 	"github.com/subvisual/fidl/types"
 )
 
@@ -15,6 +14,7 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price type
 		`
 		INSERT INTO accounts (wallet_address, account_type)
 		VALUES ($1, $2)
+		ON CONFLICT (wallet_address) DO NOTHING
 		RETURNING id
 		`
 
@@ -31,7 +31,7 @@ func (s BankService) RegisterProxy(spid string, walletAddress string, price type
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
-		args := []any{walletAddress, bank.StorageProvider}
+		args := []any{walletAddress, StorageProvider}
 		if err := tx.QueryRow(accountQuery, args...).Scan(&accountID); err != nil {
 			return fmt.Errorf("failed to add account entry: %w", err)
 		}
