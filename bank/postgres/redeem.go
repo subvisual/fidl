@@ -25,6 +25,7 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 		  AND proxy = $2
 		  AND balance >= $3
 		  AND created_at >= $4
+		  AND status_id = $5
 		`
 
 	depositQuery :=
@@ -96,7 +97,7 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 
 		var auth Authorization
 
-		args := []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline)}
+		args := []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline), AuthorizationLocked}
 		if err := tx.Get(&auth, verifyAuthQuery, args...); err != nil {
 			return bank.ErrAuthNotFound
 		}
