@@ -10,12 +10,19 @@ import (
 )
 
 type Error struct {
-	Message []byte
+	Message any
 	Status  int
 }
 
 func (e *Error) Error() string {
-	return string(e.Message)
+	switch msg := e.Message.(type) {
+	case string:
+		return msg
+	case []byte:
+		return string(msg)
+	default:
+		return fmt.Sprintf("%v", e.Message)
+	}
 }
 
 type Request struct {
@@ -60,7 +67,8 @@ func (r *Request) Post(ctx context.Context) (*Response, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.endpoint.String(), r.body)
 	if err != nil {
-		return nil, fmt.Errorf("failed context creation: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	for k, v := range r.headers {
@@ -70,14 +78,16 @@ func (r *Request) Post(ctx context.Context) (*Response, error) {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http request failed: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read message body: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	return &Response{Body: body, Status: resp.StatusCode}, nil
@@ -89,7 +99,8 @@ func (r *Request) Get(ctx context.Context) (*Response, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.endpoint.String(), r.body)
 	if err != nil {
-		return nil, fmt.Errorf("failed context creation: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	for k, v := range r.headers {
@@ -105,14 +116,16 @@ func (r *Request) Get(ctx context.Context) (*Response, error) {
 	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http request failed: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read message body: %w", err)
+		// nolint:wrapcheck
+		return nil, err
 	}
 
 	return &Response{Body: body, Status: resp.StatusCode}, nil

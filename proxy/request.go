@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -82,12 +83,15 @@ func Verify(ctx context.Context, banks map[string]Bank, route Route, wallet type
 		return nil, err
 	}
 
+	errors := make(map[string]any, len(banks))
 	for key, val := range banks {
 		zap.L().Debug("looking up authorization at", zap.String("bank", key))
 		endpoint, _ := url.Parse(val.URL)
 		err := verify(ctx, endpoint.JoinPath(route.BankVerify), wallet, sig, body)
 		if err != nil {
 			zap.L().Debug("no authorization found at", zap.String("bank", key))
+			errors[val.URL] = parseVerifyError(err)
+
 			continue
 		}
 
@@ -97,7 +101,7 @@ func Verify(ctx context.Context, banks map[string]Bank, route Route, wallet type
 	}
 
 	return nil, &request.Error{
-		Message: []byte("no authorization found"),
+		Message: errors,
 		Status:  http.StatusNotFound,
 	}
 }
@@ -180,4 +184,25 @@ func sign(wallet types.Wallet, body []byte) ([]byte, error) {
 	}
 
 	return out, nil
+}
+func parseVerifyError(value error) string {
+	type ErrorResponse struct {
+		Status string `json:"status"`
+		Data   struct {
+			Bank string `json:"bank"`
+		} `json:"data"`
+	}
+
+	var er ErrorResponse
+	err := json.Unmarshal([]byte(value.Error()), &er)
+	if err != nil {
+		parent := errors.Unwrap(value)
+		if parent != nil {
+			return parent.Error()
+		}
+
+		return value.Error()
+	}
+
+	return er.Data.Bank
 }
