@@ -23,21 +23,21 @@ Example of configuration files for each component on the folder `etc`.
 
 ## CLI
 
-To run the CLI: `go run cmd/cli/main.go`
+To run the CLI: `go run cmd/cli/main.go --config="etc/cli.ini.example"`
 
-Available commands:
+With the following available commands:
 
--   `go run cmd/cli/main.go authorize -p <proxy_wallet_address> -b <bank_address>`
--   `go run cmd/cli/main.go balance -b <bank_address>`
--   `go run cmd/cli/main.go deposit -a <amount> -b <bank_address>`
--   `go run cmd/cli/main.go refund -b <bank_address>`
--   `go run cmd/cli/main.go withdraw -a <amount> -d <destination> -b <bank_address>`
--   `go run cmd/cli/main.go banks -p <proxy_address>`
--   `go run cmd/cli/main.go retrieval -p <proxy_address> -i <piece_cid> -a <authorization>`
+-   `authorize -p <proxy_wallet_address> -b <bank_address>`
+-   `balance -b <bank_address>`
+-   `deposit -a <amount> -b <bank_address>`
+-   `refund -b <bank_address>`
+-   `withdraw -a <amount> -d <destination> -b <bank_address>`
+-   `banks -p <proxy_address>`
+-   `retrieval -p <proxy_address> -i <piece_cid> -a <authorization>`
 
 ## Service/Bank
 
-To run the Bank: `go run cmd/bank/main.go`
+To run the Bank: `go run cmd/bank/main.go --config="etc/bank.ini.example"`
 
 HTTP server API featuring the following endpoints:
 
@@ -62,10 +62,14 @@ To run migrations:
 
 ## Proxy
 
-To run the Proxy: `go run cmd/proxy/main.go`
+To run the Proxy: `go run cmd/proxy/main.go --config="etc/proxy.ini.example"`
 
 HTTP server API featuring the following endpoints:
 
 -   GET `/api/v1/healthcheck`: healthcheck to verify if the server is properly running
 -   GET `/api/v1/banks`: show the banks that the proxy is registered with
 -   GET `/api/v1/fetch/{piece_cid}`: to request a file retrieval to booster-http, given a `piece-cid`
+
+## License
+
+Dual-licensed under [MIT](https://github.com/subvisual/fidl/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/subvisual/fidl/blob/main/LICENSE-APACHE)
