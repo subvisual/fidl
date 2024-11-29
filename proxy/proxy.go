@@ -17,10 +17,14 @@ type Server struct {
 
 type RetrievalParams struct {
 	Authorization uuid.UUID `validate:"required"`
-	Bank          string    `validate:"required,url"`
 }
 
 type BankListResponse struct {
 	Cost types.FIL `json:"cost"`
 	URL  string    `json:"url"`
+}
+
+type RequestErrorParams struct {
+	Status string            `json:"status"`
+	Data   map[string]string `json:"data"`
 }

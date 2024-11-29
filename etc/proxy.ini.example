@@ -22,14 +22,14 @@ max-idle-conns=100
 upstream="http://localhost:7777"
 
 [wallet]
-path="./etc/proxy.key"
+path="./etc/proxy.key.example"
 address="f15nrbm4j7ptwl5tdbivasxnqypceh3cb4htpwlta"
 
 [bank.one]
-register="http://localhost:8090/api/v1/register"
+url="http://localhost:8090"
 
 [bank.two]
-register="http://localhost:8091/api/v1/register"
+url="http://localhost:8091"
 
 [provider]
 cost=100
@@ -37,4 +37,5 @@ sector-size=34359738368
 
 [route]
 bank-redeem="/api/v1/redeem"
+bank-register="/api/v1/register"
 bank-verify="/api/v1/verify"

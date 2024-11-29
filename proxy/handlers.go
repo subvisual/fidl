@@ -7,11 +7,13 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/subvisual/fidl/http/jsend"
+	"github.com/subvisual/fidl/request"
 	"github.com/subvisual/fidl/types"
 	"go.uber.org/zap"
 )
@@ -26,6 +28,7 @@ func (s *Server) Routes(r chi.Router) {
 
 func (s *Server) handleRetrieval(w http.ResponseWriter, r *http.Request) {
 	var params RetrievalParams
+	var requestError *request.Error
 
 	qs := r.URL.Query()
 	if err := s.Decode(&params, qs); err != nil {
@@ -38,15 +41,15 @@ func (s *Server) handleRetrieval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verifyEndpoint, err := rebuildBankEndpoint(params.Bank, s.ExternalRoute.BankVerify)
-	if err != nil {
-		s.JSON(w, r, http.StatusBadRequest, err)
-		return
-	}
-
 	ctx := r.Context()
-	if err := Verify(ctx, verifyEndpoint, s.Wallet, params.Authorization, s.Provider.Cost); err != nil {
-		s.JSON(w, r, http.StatusInternalServerError, err)
+	bank, err := Verify(ctx, s.Bank, s.ExternalRoute, s.Wallet, params.Authorization, s.Provider.Cost)
+	if err != nil {
+		if errors.As(err, &requestError) {
+			s.JSON(w, r, requestError.Status, err)
+		} else {
+			s.JSON(w, r, http.StatusInternalServerError, err)
+		}
+
 		return
 	}
 
@@ -56,21 +59,22 @@ func (s *Server) handleRetrieval(w http.ResponseWriter, r *http.Request) {
 
 	s.Forwarder.Forward(piece, w, r)
 
+	bytesSent := atomic.LoadInt64(accumulator)
+	if bytesSent == 0 {
+		return
+	}
+
 	fil := new(types.FIL)
 	fil.Int = new(big.Int).Div(
 		new(big.Int).Mul(
-			big.NewInt(atomic.LoadInt64(accumulator)),
+			big.NewInt(bytesSent),
 			s.Provider.Cost.Int,
 		),
 		big.NewInt(s.Provider.SectorSize),
 	)
 
-	redeemEndpoint, err := rebuildBankEndpoint(params.Bank, s.ExternalRoute.BankRedeem)
-	if err != nil {
-		s.JSON(w, r, http.StatusBadRequest, err)
-		return
-	}
-	if err := Redeem(ctx, redeemEndpoint, s.Wallet, params.Authorization, *fil); err != nil {
+	endpoint, _ := url.Parse(bank.URL)
+	if err := Redeem(ctx, endpoint.JoinPath(s.ExternalRoute.BankRedeem), s.Wallet, params.Authorization, *fil); err != nil {
 		zap.L().Error(
 			"failed to reedeem",
 			zap.String("authorization", params.Authorization.String()),
@@ -90,7 +94,7 @@ func (s *Server) handleBankList(w http.ResponseWriter, r *http.Request) {
 	payload := make([]BankListResponse, 0, len(s.Bank))
 
 	for _, v := range s.Bank {
-		payload = append(payload, BankListResponse{URL: v.Register, Cost: s.Provider.Cost})
+		payload = append(payload, BankListResponse{URL: v.URL, Cost: s.Provider.Cost})
 	}
 
 	s.JSON(w, r, http.StatusOK, payload)
@@ -131,6 +135,7 @@ func (s *Server) HandleForwarderResponse(resp *http.Response) error {
 		return fmt.Errorf("failed to parse marshal payload: %w", err)
 	}
 
+	zap.L().Debug("forwarder got error from upstream", zap.ByteString("payload", body))
 	resp.Body = io.NopCloser(strings.NewReader(string(payload)))
 	resp.Header.Set("Content-Type", "application/json")
 	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(payload)))

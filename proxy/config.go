@@ -11,7 +11,7 @@ import (
 )
 
 type Bank struct {
-	Register string `toml:"register"`
+	URL string `toml:"url"`
 }
 
 type Provider struct {
@@ -28,8 +28,9 @@ type ForwarderConfig struct {
 }
 
 type Route struct {
-	BankRedeem string `toml:"bank-redeem"`
-	BankVerify string `toml:"bank-verify"`
+	BankRedeem   string `toml:"bank-redeem"`
+	BankRegister string `toml:"bank-register"`
+	BankVerify   string `toml:"bank-verify"`
 }
 
 type Config struct {

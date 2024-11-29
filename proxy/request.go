@@ -6,75 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/subvisual/fidl/crypto"
+	"github.com/subvisual/fidl/request"
 	"github.com/subvisual/fidl/types"
 	"go.uber.org/zap"
 )
-
-type Request struct {
-	body     io.Reader
-	endpoint url.URL
-	headers  map[string]string
-}
-
-type Response struct {
-	Body   []byte
-	Status int
-}
-
-func NewRequest() *Request {
-	return &Request{headers: make(map[string]string)}
-}
-
-func (r *Request) SetEndpoint(endpoint url.URL) *Request {
-	r.endpoint = endpoint
-	return r
-}
-
-func (r *Request) SetBody(body io.Reader) *Request {
-	r.body = body
-	return r
-}
-
-func (r *Request) AppendHeader(key string, value string) *Request {
-	r.headers[key] = value
-	return r
-}
-
-func (r *Request) Post(ctx context.Context) (*Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.endpoint.String(), r.body)
-	if err != nil {
-		return nil, fmt.Errorf("failed context creation: %w", err)
-	}
-
-	for k, v := range r.headers {
-		req.Header.Add(k, v)
-	}
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http request failed: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read message body: %w", err)
-	}
-
-	return &Response{Body: body, Status: resp.StatusCode}, nil
-}
 
 func Register(cfg Config) error {
 	body, err := json.Marshal(map[string]any{
@@ -90,12 +30,13 @@ func Register(cfg Config) error {
 		return err
 	}
 
-	for k, v := range cfg.Bank {
+	for key, val := range cfg.Bank {
 		go func() {
-			if err := register(v.Register, cfg.Wallet.Address.String(), body, sig); err != nil {
-				zap.L().Error("failed to register bank", zap.String("bank", k), zap.Error(err))
+			endpoint, _ := url.Parse(val.URL)
+			if err := register(endpoint.JoinPath(cfg.Route.BankRegister), cfg.Wallet.Address.String(), body, sig); err != nil {
+				zap.L().Error("failed to register bank", zap.String("bank", key), zap.Error(err))
 			} else {
-				zap.L().Info("registered with bank", zap.String("bank", k))
+				zap.L().Info("registered with bank", zap.String("bank", key))
 			}
 		}()
 	}
@@ -103,15 +44,10 @@ func Register(cfg Config) error {
 	return nil
 }
 
-func register(endpoint string, wallet string, payload []byte, sig []byte) error {
-	dstURL, err := url.Parse(endpoint)
-	if err != nil {
-		return fmt.Errorf("bank url: %w", err)
-	}
-
+func register(endpoint *url.URL, wallet string, payload []byte, sig []byte) error {
 	buff := bytes.NewBuffer(payload)
-	resp, err := NewRequest().
-		SetEndpoint(*dstURL).
+	resp, err := request.New().
+		SetEndpoint(endpoint).
 		SetBody(buff).
 		AppendHeader("content-type", "application/json").
 		AppendHeader("sig", hex.EncodeToString(sig)).
@@ -119,17 +55,78 @@ func register(endpoint string, wallet string, payload []byte, sig []byte) error 
 		AppendHeader("msg", hex.EncodeToString(payload)).
 		Post(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("register bank: %w", err)
 	}
 
 	if resp.Status != http.StatusOK {
-		return fmt.Errorf("bank register: %s", resp.Body)
+		return &request.Error{
+			Message: resp.Body,
+			Status:  resp.Status,
+		}
 	}
 
 	return nil
 }
 
-func Verify(ctx context.Context, endpoint url.URL, wallet types.Wallet, id uuid.UUID, amount types.FIL) error {
+func Verify(ctx context.Context, banks map[string]Bank, route Route, wallet types.Wallet, id uuid.UUID, amount types.FIL) (*Bank, error) {
+	body, err := json.Marshal(map[string]any{
+		"id":     id,
+		"amount": amount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed payload marshaling: %w", err)
+	}
+
+	sig, err := sign(wallet, body)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, val := range banks {
+		zap.L().Debug("looking up authorization at", zap.String("bank", key))
+		endpoint, _ := url.Parse(val.URL)
+		err := verify(ctx, endpoint.JoinPath(route.BankVerify), wallet, sig, body)
+		if err != nil {
+			zap.L().Debug("no authorization found at", zap.String("bank", key))
+			continue
+		}
+
+		zap.L().Debug("authorization found at", zap.String("bank", key))
+
+		return &val, nil
+	}
+
+	return nil, &request.Error{
+		Message: []byte("no authorization found"),
+		Status:  http.StatusNotFound,
+	}
+}
+
+func verify(ctx context.Context, endpoint *url.URL, wallet types.Wallet, sig []byte, body []byte) error {
+	buff := bytes.NewBuffer(body)
+	resp, err := request.New().
+		SetEndpoint(endpoint).
+		SetBody(buff).
+		AppendHeader("content-type", "application/json").
+		AppendHeader("sig", hex.EncodeToString(sig)).
+		AppendHeader("pub", wallet.Address.String()).
+		AppendHeader("msg", hex.EncodeToString(body)).
+		Post(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to verify: %w", err)
+	}
+
+	if resp.Status != http.StatusOK {
+		return &request.Error{
+			Message: resp.Body,
+			Status:  resp.Status,
+		}
+	}
+
+	return nil
+}
+
+func Redeem(ctx context.Context, endpoint *url.URL, wallet types.Wallet, id uuid.UUID, amount types.FIL) error {
 	body, err := json.Marshal(map[string]any{
 		"id":     id,
 		"amount": amount,
@@ -144,7 +141,7 @@ func Verify(ctx context.Context, endpoint url.URL, wallet types.Wallet, id uuid.
 	}
 
 	buff := bytes.NewBuffer(body)
-	resp, err := NewRequest().
+	resp, err := request.New().
 		SetEndpoint(endpoint).
 		SetBody(buff).
 		AppendHeader("content-type", "application/json").
@@ -153,45 +150,14 @@ func Verify(ctx context.Context, endpoint url.URL, wallet types.Wallet, id uuid.
 		AppendHeader("msg", hex.EncodeToString(body)).
 		Post(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to redeem %w", err)
 	}
 
 	if resp.Status != http.StatusOK {
-		return fmt.Errorf("bank register: %s", resp.Body)
-	}
-
-	return nil
-}
-
-func Redeem(ctx context.Context, endpoint url.URL, wallet types.Wallet, id uuid.UUID, amount types.FIL) error {
-	body, err := json.Marshal(map[string]any{
-		"id":     id,
-		"amount": amount,
-	})
-	if err != nil {
-		return fmt.Errorf("failed payload marshaling: %w", err)
-	}
-
-	sig, err := sign(wallet, body)
-	if err != nil {
-		return err
-	}
-
-	buff := bytes.NewBuffer(body)
-	resp, err := NewRequest().
-		SetEndpoint(endpoint).
-		SetBody(buff).
-		AppendHeader("content-type", "application/json").
-		AppendHeader("sig", hex.EncodeToString(sig)).
-		AppendHeader("pub", wallet.Address.String()).
-		AppendHeader("msg", hex.EncodeToString(body)).
-		Post(ctx)
-	if err != nil {
-		return err
-	}
-
-	if resp.Status != http.StatusOK {
-		return fmt.Errorf("bank register: %s", resp.Body)
+		return &request.Error{
+			Message: resp.Body,
+			Status:  resp.Status,
+		}
 	}
 
 	return nil
@@ -214,19 +180,4 @@ func sign(wallet types.Wallet, body []byte) ([]byte, error) {
 	}
 
 	return out, nil
-}
-
-func rebuildBankEndpoint(initialURL string, path string) (url.URL, error) {
-	parsedEndpoint, err := url.Parse(initialURL)
-	if err != nil {
-		return url.URL{}, fmt.Errorf("failed to parse url: %w", err)
-	}
-
-	finalEndpoint := url.URL{
-		Scheme: parsedEndpoint.Scheme,
-		Host:   parsedEndpoint.Host,
-		Path:   path,
-	}
-
-	return finalEndpoint, nil
 }
