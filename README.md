@@ -27,13 +27,13 @@ To run the CLI: `go run cmd/cli/main.go`
 
 Available commands:
 
--   `go run cmd/cli/main.go authorize -a <amount> -b <bank_address>`
+-   `go run cmd/cli/main.go authorize -p <proxy_wallet_address> -b <bank_address>`
 -   `go run cmd/cli/main.go balance -b <bank_address>`
 -   `go run cmd/cli/main.go deposit -a <amount> -b <bank_address>`
 -   `go run cmd/cli/main.go refund -b <bank_address>`
 -   `go run cmd/cli/main.go withdraw -a <amount> -d <destination> -b <bank_address>`
 -   `go run cmd/cli/main.go banks -p <proxy_address>`
--   `go run cmd/cli/main.go retrieval -p <proxy_address> -b <bank_address> -i <piece_id> -a <authorization>`
+-   `go run cmd/cli/main.go retrieval -p <proxy_address> -i <piece_cid> -a <authorization>`
 
 ## Service/Bank
 
@@ -69,7 +69,3 @@ HTTP server API featuring the following endpoints:
 -   GET `/api/v1/healthcheck`: healthcheck to verify if the server is properly running
 -   GET `/api/v1/banks`: show the banks that the proxy is registered with
 -   GET `/api/v1/fetch/{piece_cid}`: to request a file retrieval to booster-http, given a `piece-cid`
-
-## License
-
-Dual-licensed under [MIT](https://github.com/subvisual/fidl/blob/main/LICENSE-MIT) + [Apache 2.0](https://github.com/subvisual/fidl/blob/main/LICENSE-APACHE)

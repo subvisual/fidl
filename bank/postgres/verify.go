@@ -13,14 +13,13 @@ import (
 func (s BankService) Verify(address string, uuid uuid.UUID, amount types.FIL) error {
 	getAuthQuery :=
 		`
-			SELECT *
-			FROM escrow
-			WHERE uuid = $1
-			  AND proxy = $2
-			  AND balance >= $3
-			  AND created_at >= $4
-			  AND status_id = $5
-			`
+		SELECT *
+		FROM escrow
+		WHERE uuid = $1
+		  AND proxy = $2
+		  AND balance >= $3
+		  AND created_at >= $4
+		`
 
 	updateAuthQuery :=
 		`
@@ -51,9 +50,13 @@ func (s BankService) Verify(address string, uuid uuid.UUID, amount types.FIL) er
 			return fmt.Errorf("failed to parse escrow deadline from config: %w", err)
 		}
 
-		args := []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline), AuthorizationOpen}
+		args := []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline)}
 		if err := tx.Get(&auth, getAuthQuery, args...); err != nil {
 			return bank.ErrAuthNotFound
+		}
+
+		if auth.Status == AuthorizationLocked {
+			return bank.ErrAuthLocked
 		}
 
 		args = []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline), AuthorizationLocked}
