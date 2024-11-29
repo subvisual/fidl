@@ -18,7 +18,7 @@ func TestVerify(t *testing.T) { // nolint:paralleltest
 		t.Fatalf("could not run up migrations: %v", err)
 	}
 
-	proxyCfg, err := setup.Proxy(proxyPrice, localhost, bankPort, upstreamPort)
+	proxyCfg, err := setup.Proxy(proxyPrice)
 	if err != nil {
 		t.Fatalf("could not setup proxy info: %v", err)
 	}
@@ -33,11 +33,18 @@ func TestVerify(t *testing.T) { // nolint:paralleltest
 		t.Fatalf("could not setup CLI info: %v", err)
 	}
 
-	bankAddress := fmt.Sprintf("http://%s:%d", localhost, bankPort)
+	bankEndpoint := url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%d", bankFqdn, bankPort),
+	}
 
 	depositOpts := cli.DepositOptions{
 		Amount:      "5 FIL",
-		BankAddress: bankAddress,
+		BankAddress: bankEndpoint.String(),
+	}
+
+	if err := cl.Validate.Struct(depositOpts); err != nil {
+		t.Errorf("failed to validate: %v", err)
 	}
 
 	res, err := cli.Deposit(ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
@@ -54,12 +61,12 @@ func TestVerify(t *testing.T) { // nolint:paralleltest
 		expected    string
 		authorized  string
 	}{
-		{bankAddress, proxyCfg.Wallet.Address.String(), "4 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "3 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "2 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "1 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "0 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "not have enough funds", ""},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "4 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "3 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "2 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "1 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "0 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "not have enough funds", ""},
 	}
 
 	for _, test := range tests {
@@ -68,7 +75,11 @@ func TestVerify(t *testing.T) { // nolint:paralleltest
 			Proxy:       test.destination,
 		}
 
-		res, err := cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, authorizeOpts, cl)
+		if err := cl.Validate.Struct(authorizeOpts); err != nil {
+			t.Errorf("failed to validate: %v", err)
+		}
+
+		res, err := cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, authorizeOpts)
 		if err != nil {
 			if strings.Contains(err.Error(), test.expected) {
 				continue
@@ -79,14 +90,8 @@ func TestVerify(t *testing.T) { // nolint:paralleltest
 			assert.Equal(t, res.Data.FIL.String(), test.expected)
 			assert.Equal(t, res.Data.Escrow.String(), test.authorized)
 
-			finalEndpoint := url.URL{
-				Scheme: "http",
-				Host:   fmt.Sprintf("%s:%d", localhost, bankPort),
-				Path:   proxyCfg.Route.BankVerify,
-			}
-
 			ctx := context.Background()
-			err := proxy.Verify(ctx, finalEndpoint, proxyCfg.Wallet, res.Data.ID, proxyCfg.Provider.Cost)
+			_, err := proxy.Verify(ctx, proxyCfg.Bank, proxyCfg.Route, proxyCfg.Wallet, res.Data.ID, proxyCfg.Provider.Cost)
 			if err != nil {
 				t.Errorf("failed to verify: %v", err)
 			}

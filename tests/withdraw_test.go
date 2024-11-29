@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -20,11 +21,18 @@ func TestWithdraw(t *testing.T) { // nolint:paralleltest
 		t.Fatalf("could not setup CLI info: %v", err)
 	}
 
-	bankAddress := fmt.Sprintf("http://%s:%d", localhost, bankPort)
+	bankEndpoint := url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%d", bankFqdn, bankPort),
+	}
 
 	depositOpts := cli.DepositOptions{
 		Amount:      "5 FIL",
-		BankAddress: bankAddress,
+		BankAddress: bankEndpoint.String(),
+	}
+
+	if err := cl.Validate.Struct(depositOpts); err != nil {
+		t.Errorf("failed to validate: %v", err)
 	}
 
 	res, err := cli.Deposit(ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
@@ -43,12 +51,12 @@ func TestWithdraw(t *testing.T) { // nolint:paralleltest
 		amount      string
 		expected    string
 	}{
-		{bankAddress, destinationAddress, "1 FIL", "4 FIL"},
-		{bankAddress, destinationAddress, "1 FIL", "3 FIL"},
-		{bankAddress, destinationAddress, "1 FIL", "2 FIL"},
-		{bankAddress, destinationAddress, "1 FIL", "1 FIL"},
-		{bankAddress, destinationAddress, "1 FIL", "0 FIL"},
-		{bankAddress, destinationAddress, "1 FIL", "wallet not found"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "4 FIL"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "3 FIL"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "2 FIL"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "1 FIL"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "0 FIL"},
+		{bankEndpoint.String(), destinationAddress, proxyPrice, "wallet not found"},
 	}
 
 	for _, test := range tests {
@@ -58,7 +66,11 @@ func TestWithdraw(t *testing.T) { // nolint:paralleltest
 			Destination: test.destination,
 		}
 
-		res, err := cli.Withdraw(ki, cfg.Wallet.Address, cfg.Route.Withdraw, withdrawOpts, cl)
+		if err := cl.Validate.Struct(withdrawOpts); err != nil {
+			t.Errorf("failed to validate: %v", err)
+		}
+
+		res, err := cli.Withdraw(ki, cfg.Wallet.Address, cfg.Route.Withdraw, withdrawOpts)
 		if err != nil {
 			if strings.Contains(err.Error(), test.expected) {
 				continue
