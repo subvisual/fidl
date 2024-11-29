@@ -45,7 +45,7 @@ func (s *Server) handleRetrieval(w http.ResponseWriter, r *http.Request) {
 	bank, err := Verify(ctx, s.Bank, s.ExternalRoute, s.Wallet, params.Authorization, s.Provider.Cost)
 	if err != nil {
 		if errors.As(err, &requestError) {
-			s.JSON(w, r, requestError.Status, err)
+			s.JSON(w, r, requestError.Status, requestError.Message)
 		} else {
 			s.JSON(w, r, http.StatusInternalServerError, err)
 		}
