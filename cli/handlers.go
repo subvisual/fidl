@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,43 +11,36 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func Authorize(ki types.KeyInfo, addr types.Address, route string, options AuthorizeOptions, cli CLI) (*AuthorizeResponse, error) {
+func Authorize(ki types.KeyInfo, addr types.Address, route string, options AuthorizeOptions) (*AuthorizeResponse, error) {
 	authorizeResponse := AuthorizeResponse{}
 
-	params := AuthorizeBody{Proxy: options.Proxy}
-
-	err := cli.Validate.Struct(params)
+	body, err := json.Marshal(map[string]any{
+		"proxy": options.Proxy,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	authorizeJSON, err := json.Marshal(params)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling authorize data: %w", err)
-	}
-
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, authorizeJSON, 30)
+	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&authorizeResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&authorizeResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
 		fmt.Printf("You successfully authorized to escrow: %s \nYour current bank balance is: %s\nAuth id: %s\n", authorizeResponse.Data.Escrow, authorizeResponse.Data.FIL, authorizeResponse.Data.ID) // nolint:forbidigo
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("wallet not found")
+		return nil, fmt.Errorf("client or proxy wallet not found")
 	case http.StatusForbidden:
 		return nil, fmt.Errorf("not have enough funds")
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &authorizeResponse, nil
@@ -54,16 +48,15 @@ func Authorize(ki types.KeyInfo, addr types.Address, route string, options Autho
 
 func Balance(ki types.KeyInfo, addr types.Address, route string, options BalanceOptions) (*BalanceResponse, error) {
 	balanceResponse := BalanceResponse{}
-	resp, err := GetRequest(ki, addr, options.BankAddress, route, 30)
+
+	resp, err := GetRequest(ki, addr, options.BankAddress, route, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating balance request: %w", err)
+		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&balanceResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&balanceResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
@@ -73,7 +66,7 @@ func Balance(ki types.KeyInfo, addr types.Address, route string, options Balance
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &balanceResponse, nil
@@ -81,16 +74,15 @@ func Balance(ki types.KeyInfo, addr types.Address, route string, options Balance
 
 func Banks(route string, options BanksOptions) (*BanksResponse, error) {
 	banksResponse := BanksResponse{}
-	resp, err := ProxyBanksRequest(options.ProxyAddress, route, 30)
+
+	resp, err := ProxyBanksRequest(options.ProxyAddress, route)
 	if err != nil {
 		return nil, fmt.Errorf("error creating banks request: %w", err)
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&banksResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&banksResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
@@ -99,7 +91,7 @@ func Banks(route string, options BanksOptions) (*BanksResponse, error) {
 			fmt.Printf("Bank address: %s, with cost: %s\n", b.URL, b.Cost) // nolint:forbidigo
 		}
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &banksResponse, nil
@@ -114,46 +106,43 @@ func Deposit(ki types.KeyInfo, addr types.Address, route string, options Deposit
 		return nil, fmt.Errorf("error unmarshalling amount data: %w", err)
 	}
 
-	depositJSON, err := json.Marshal(DepositBody{Amount: b})
+	body, err := json.Marshal(map[string]any{
+		"amount": b,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling deposit data: %w", err)
+		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, depositJSON, 30)
+	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&depositResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&depositResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
 		fmt.Println("Deposit successful, funds updated to:", depositResponse.Data.FIL) // nolint:forbidigo
-
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("wallet not found")
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &depositResponse, nil
 }
 
 func Retrieval(route string, options RetrievalOptions) error {
-	resp, err := ProxyRetrieveRequest(options.ProxyAddress, options, route, 30)
+	resp, err := ProxyRetrieveRequest(options.ProxyAddress, options, route)
 	if err != nil {
 		return fmt.Errorf("error creating retrieval request: %w", err)
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
 		outputFile, err := os.Create("output.car")
 		if err != nil {
@@ -161,16 +150,14 @@ func Retrieval(route string, options RetrievalOptions) error {
 		}
 		defer outputFile.Close()
 
-		_, err = io.Copy(outputFile, resp.Body)
+		_, err = io.Copy(outputFile, bytes.NewReader(resp.Body))
 		if err != nil {
 			return fmt.Errorf("error saving piece to output.car: %w", err)
 		}
 
 		fmt.Println("Piece successfully saved as output.car") // nolint:forbidigo
-	case http.StatusNotFound:
-		return fmt.Errorf("piece not found")
 	default:
-		return fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return nil
@@ -178,16 +165,15 @@ func Retrieval(route string, options RetrievalOptions) error {
 
 func Refund(ki types.KeyInfo, addr types.Address, route string, options RefundOptions) (*RefundResponse, error) {
 	refundResponse := RefundResponse{}
-	resp, err := GetRequest(ki, addr, options.BankAddress, route, 30)
+
+	resp, err := GetRequest(ki, addr, options.BankAddress, route, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating refund request: %w", err)
+		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&refundResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&refundResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
@@ -199,13 +185,13 @@ func Refund(ki types.KeyInfo, addr types.Address, route string, options RefundOp
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &refundResponse, nil
 }
 
-func Withdraw(ki types.KeyInfo, addr types.Address, route string, options WithdrawOptions, cli CLI) (*TransactionResponse, error) {
+func Withdraw(ki types.KeyInfo, addr types.Address, route string, options WithdrawOptions) (*TransactionResponse, error) {
 	var b types.FIL // nolint:varnamelen
 	withdrawResponse := TransactionResponse{}
 
@@ -214,28 +200,22 @@ func Withdraw(ki types.KeyInfo, addr types.Address, route string, options Withdr
 		return nil, fmt.Errorf("error unmarshalling amount data: %w", err)
 	}
 
-	params := WithdrawBody{Amount: b, Destination: options.Destination}
-
-	err = cli.Validate.Struct(params)
+	body, err := json.Marshal(map[string]any{
+		"amount": b,
+		"dst":    options.Destination,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	withdrawJSON, err := json.Marshal(params)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling withdraw data: %w", err)
-	}
-
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, withdrawJSON, 30)
+	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
+	switch resp.Status {
 	case http.StatusOK:
-		err := json.NewDecoder(resp.Body).Decode(&withdrawResponse)
+		err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&withdrawResponse)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
@@ -247,7 +227,7 @@ func Withdraw(ki types.KeyInfo, addr types.Address, route string, options Withdr
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
 	default:
-		return nil, fmt.Errorf("something went wrong: %s", http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
 
 	return &withdrawResponse, nil

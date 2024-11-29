@@ -15,6 +15,11 @@ func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 		Short: "To authorize a storage provider to spend a specific amount of FIL to make reedems.",
 		Long:  `This command allocates funds from your wallet to be spent by a storage provider to reedem files to you.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			err := cl.Validate.Struct(opts)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 
@@ -23,7 +28,7 @@ func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 				return fmt.Errorf("failed to read wallet: %w", err)
 			}
 
-			_, err = cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, opts, cl)
+			_, err = cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, opts)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -33,7 +38,7 @@ func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 	}
 
 	authorizeCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
-	authorizeCmd.Flags().StringVarP(&opts.Proxy, "proxy", "p", "", "The proxy address")
+	authorizeCmd.Flags().StringVarP(&opts.Proxy, "proxy", "p", "", "The proxy wallet address")
 	cobra.CheckErr(authorizeCmd.MarkFlagRequired("bank"))
 	cobra.CheckErr(authorizeCmd.MarkFlagRequired("proxy"))
 

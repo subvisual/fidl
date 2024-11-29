@@ -27,11 +27,9 @@ func newRetrievalCommand() *cobra.Command {
 	}
 	retrievalCmd.Flags().StringVarP(&opts.Piece, "id", "i", "", "The piece CID to be retrieved")
 	retrievalCmd.Flags().StringVarP(&opts.ProxyAddress, "proxy", "p", "", "The proxy address")
-	retrievalCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
-	retrievalCmd.Flags().StringVarP(&opts.Authorization, "authorization", "a", "", "The bank address")
+	retrievalCmd.Flags().StringVarP(&opts.Authorization, "authorization", "a", "", "The authorization uuid")
 	cobra.CheckErr(retrievalCmd.MarkFlagRequired("id"))
 	cobra.CheckErr(retrievalCmd.MarkFlagRequired("proxy"))
-	cobra.CheckErr(retrievalCmd.MarkFlagRequired("bank"))
 	cobra.CheckErr(retrievalCmd.MarkFlagRequired("authorization"))
 
 	return retrievalCmd
