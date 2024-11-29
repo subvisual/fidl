@@ -15,6 +15,11 @@ func newWithdrawCommand(cl cli.CLI) *cobra.Command {
 		Short: "To withdraw FIL from the client's bank account.",
 		Long:  `This command transfers a specified amount of FIL from the client's bank account to their own wallet.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			err := cl.Validate.Struct(opts)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 
@@ -23,7 +28,7 @@ func newWithdrawCommand(cl cli.CLI) *cobra.Command {
 				return fmt.Errorf("failed to read wallet: %w", err)
 			}
 
-			_, err = cli.Withdraw(ki, cfg.Wallet.Address, cfg.Route.Withdraw, opts, cl)
+			_, err = cli.Withdraw(ki, cfg.Wallet.Address, cfg.Route.Withdraw, opts)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}

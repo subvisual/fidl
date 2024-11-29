@@ -7,12 +7,12 @@ import (
 
 type AuthorizeOptions struct {
 	BankAddress string `json:"bankAddress"`
-	Proxy       string `json:"proxy"`
+	Proxy       string `validate:"is-filecoin-address" json:"proxy"`
 }
 
 type WithdrawOptions struct {
 	Amount      string `json:"amount"`
-	Destination string `json:"dst"`
+	Destination string `validate:"is-filecoin-address" json:"dst"`
 	BankAddress string `json:"bankAddress"`
 }
 
@@ -31,31 +31,12 @@ type RefundOptions struct {
 
 type RetrievalOptions struct {
 	ProxyAddress  string `json:"proxyAddress"`
-	BankAddress   string `json:"bank"`
 	Piece         string `json:"piece"`
 	Authorization string `json:"authorization"`
 }
 
 type BanksOptions struct {
 	ProxyAddress string `json:"proxyAddress"`
-}
-
-type AuthorizeBody struct {
-	Proxy string `validate:"is-filecoin-address" json:"proxy"`
-}
-
-type WithdrawBody struct {
-	Amount      types.FIL `json:"amount"`
-	Destination string    `validate:"is-filecoin-address" json:"dst"`
-}
-
-type DepositBody struct {
-	Amount types.FIL `json:"amount"`
-}
-
-type RetrievalBody struct {
-	Bank          string    `json:"bank"`
-	Authorization uuid.UUID `json:"authorization"`
 }
 
 type TransactionResponseData struct {

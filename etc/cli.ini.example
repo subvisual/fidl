@@ -10,5 +10,5 @@ refund="/api/v1/refund"
 authorize="/api/v1/authorize"
 
 [wallet]
-path="./etc/cli.key"
-address="f1xccu2bjjxu5e7lolwjlzh2rdkg2rdslwgkk7dci"
+path="./etc/cli.key.example"
+address="f135aafnv6wnlderpanbbfwwc3zxnxzomsphqnnfq"

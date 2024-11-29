@@ -1,151 +1,139 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/subvisual/fidl/crypto"
+	"github.com/subvisual/fidl/request"
 	"github.com/subvisual/fidl/types"
 )
 
-func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte, timeout int64) (*http.Response, error) {
-	endpoint, err := url.JoinPath(bankAddress, route)
-	if err != nil {
-		return nil, fmt.Errorf("error joining endpoint path: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(body)))
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
+func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte) (*request.Response, error) {
 	msg := append([]byte(time.Now().UTC().String()), body...)
 
-	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, msg)
+	sig, err := sign(ki, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
 
-	sigBytes, err := sig.MarshalBinary()
+	dstURL, err := joinPath(bankAddress, route, "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal signature: %w", err)
+		return nil, fmt.Errorf("%w", err)
 	}
 
-	req.Header.Add("content-type", "application/json")
-	req.Header.Add("sig", hex.EncodeToString(sigBytes))
-	req.Header.Add("pub", addr.String())
-	req.Header.Add("msg", hex.EncodeToString(msg))
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
+	buff := bytes.NewBuffer(body)
+	resp, err := request.New().
+		SetEndpoint(dstURL).
+		SetBody(buff).
+		AppendHeader("content-type", "application/json").
+		AppendHeader("sig", hex.EncodeToString(sig)).
+		AppendHeader("pub", addr.String()).
+		AppendHeader("msg", hex.EncodeToString(msg)).
+		Post(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("http POST request failed: %w", err)
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	return resp, nil
 }
 
-func GetRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, timeout int64) (*http.Response, error) {
-	endpoint, err := url.JoinPath(bankAddress, route)
-	if err != nil {
-		return nil, fmt.Errorf("error joining endpoint path: %w", err)
-	}
+func GetRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte) (*request.Response, error) {
+	msg := append([]byte(time.Now().UTC().String()), body...)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	msg := []byte(time.Now().UTC().String())
-
-	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, msg)
+	sig, err := sign(ki, msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
 
-	sigBytes, err := sig.MarshalBinary()
+	dstURL, err := joinPath(bankAddress, route, "")
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal signature: %w", err)
+		return nil, fmt.Errorf("%w", err)
 	}
 
-	req.Header.Add("content-type", "application/json")
-	req.Header.Add("sig", hex.EncodeToString(sigBytes))
-	req.Header.Add("pub", addr.String())
-	req.Header.Add("msg", hex.EncodeToString(msg))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	buff := bytes.NewBuffer(body)
+	resp, err := request.New().
+		SetEndpoint(dstURL).
+		SetBody(buff).
+		AppendHeader("content-type", "application/json").
+		AppendHeader("sig", hex.EncodeToString(sig)).
+		AppendHeader("pub", addr.String()).
+		AppendHeader("msg", hex.EncodeToString(msg)).
+		Get(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("error making GET request: %w", err)
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	return resp, nil
 }
 
-func ProxyRetrieveRequest(proxyAddress string, options RetrievalOptions, route string, timeout int64) (*http.Response, error) {
-	endpoint, err := url.JoinPath(proxyAddress, route, options.Piece)
-	if err != nil {
-		return nil, fmt.Errorf("error joining endpoint path: %w", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
-
+func ProxyRetrieveRequest(proxyAddress string, options RetrievalOptions, route string) (*request.Response, error) {
 	uuid, err := uuid.Parse(options.Authorization)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing authorization string to uuid: %w", err)
 	}
 
-	q := req.URL.Query()
-	q.Add("bank", options.BankAddress)
-	q.Add("authorization", uuid.String())
-	req.URL.RawQuery = q.Encode()
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	dstURL, err := joinPath(proxyAddress, route, options.Piece)
 	if err != nil {
-		return nil, fmt.Errorf("error making GET request: %w", err)
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	resp, err := request.New().
+		SetEndpoint(dstURL).
+		AppendURLQuery("authorization", uuid.String()).
+		Get(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	return resp, nil
 }
 
-func ProxyBanksRequest(proxyAddress string, route string, timeout int64) (*http.Response, error) {
-	endpoint, err := url.JoinPath(proxyAddress, route)
+func ProxyBanksRequest(proxyAddress string, route string) (*request.Response, error) {
+	dstURL, err := joinPath(proxyAddress, route, "")
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	resp, err := request.New().
+		SetEndpoint(dstURL).
+		Get(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	return resp, nil
+}
+
+func sign(ki types.KeyInfo, body []byte) ([]byte, error) {
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign: %w", err)
+	}
+
+	out, err := sig.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("filed to marshal signature: %w", err)
+	}
+
+	return out, nil
+}
+
+func joinPath(address string, endpoint string, piece string) (*url.URL, error) {
+	endpoint, err := url.JoinPath(address, endpoint, piece)
 	if err != nil {
 		return nil, fmt.Errorf("error joining endpoint path: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	dstURL, err := url.Parse(endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, fmt.Errorf("bank url: %w", err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error making GET request: %w", err)
-	}
-
-	return resp, nil
+	return dstURL, nil
 }
