@@ -13,7 +13,10 @@ func TestRegister(t *testing.T) { // nolint:paralleltest
 		log.Fatalf("could not run up migrations: %v", err)
 	}
 
-	cfg, _ := setup.Proxy("1 FIL", localhost, bankPort, upstreamPort)
+	cfg, err := setup.Proxy(proxyPrice)
+	if err != nil {
+		t.Fatalf("could not setup proxy info: %v", err)
+	}
 
 	if err := proxy.Register(cfg); err != nil {
 		t.Log("failed to register proxy", err)

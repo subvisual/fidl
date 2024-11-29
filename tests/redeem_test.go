@@ -22,7 +22,7 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 		t.Fatalf("could not run up migrations: %v", err)
 	}
 
-	proxyCfg, err := setup.Proxy(proxyPrice, localhost, bankPort, upstreamPort)
+	proxyCfg, err := setup.Proxy(proxyPrice)
 	if err != nil {
 		t.Fatalf("could not setup proxy info: %v", err)
 	}
@@ -37,11 +37,18 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 		t.Fatalf("could not setup CLI info: %v", err)
 	}
 
-	bankAddress := fmt.Sprintf("http://%s:%d", localhost, bankPort)
+	bankEndpoint := url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%d", bankFqdn, bankPort),
+	}
 
 	depositOpts := cli.DepositOptions{
 		Amount:      "5 FIL",
-		BankAddress: bankAddress,
+		BankAddress: bankEndpoint.String(),
+	}
+
+	if err := cl.Validate.Struct(depositOpts); err != nil {
+		t.Errorf("failed to validate: %v", err)
 	}
 
 	res, err := cli.Deposit(ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
@@ -58,12 +65,14 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 		expected    string
 		authorized  string
 	}{
-		{bankAddress, proxyCfg.Wallet.Address.String(), "4 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "3 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "2 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "1 FIL", proxyPrice},
-		{bankAddress, proxyCfg.Wallet.Address.String(), "0 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "4 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "3 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "2 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "1 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "0 FIL", proxyPrice},
 	}
+
+	bankEndpoint.Path = proxyCfg.Route.BankRedeem
 
 	for _, test := range tests {
 		authorizeOpts := cli.AuthorizeOptions{
@@ -71,49 +80,56 @@ func TestRedeem(t *testing.T) { // nolint:paralleltest
 			Proxy:       test.destination,
 		}
 
-		res, err := cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, authorizeOpts, cl)
+		if err := cl.Validate.Struct(authorizeOpts); err != nil {
+			t.Errorf("failed to validate: %v", err)
+		}
+
+		res, err := cli.Authorize(ki, cfg.Wallet.Address, cfg.Route.Authorize, authorizeOpts)
 		if err != nil {
 			if strings.Contains(err.Error(), test.expected) {
 				continue
 			}
 			t.Errorf("failed to authorize: %v", err)
-		} else {
-			assert.Equal(t, res.Status, "success")
-			assert.Equal(t, res.Data.Escrow.String(), test.authorized)
-
-			rand.Seed(uint64(time.Now().UnixNano()))
-			randomFloat := rand.Float64()
-
-			s := strconv.FormatFloat(randomFloat, 'f', -1, 64)
-
-			var cost types.FIL
-			_ = cost.UnmarshalText([]byte(s))
-
-			t.Log("cost value: ", cost)
-
-			finalEndpoint := url.URL{
-				Scheme: "http",
-				Host:   fmt.Sprintf("%s:%d", localhost, bankPort),
-				Path:   proxyCfg.Route.BankRedeem,
-			}
-
-			ctx := context.Background()
-			err := proxy.Redeem(ctx, finalEndpoint, proxyCfg.Wallet, res.Data.ID, cost)
-			if err != nil {
-				t.Errorf("failed to redeem: %v", err)
-			}
-
-			balanceOpts := cli.BalanceOptions{
-				BankAddress: test.address,
-			}
-
-			res, err := cli.Balance(ki, cfg.Wallet.Address, cfg.Route.Balance, balanceOpts)
-			if err != nil {
-				t.Errorf("failed to get balance: %v", err)
-			}
-
-			assert.Equal(t, res.Status, "success")
 		}
+
+		assert.Equal(t, res.Status, "success")
+		assert.Equal(t, res.Data.Escrow.String(), test.authorized)
+
+		// nolint:gosec
+		rand.Seed(uint64(time.Now().UnixNano()))
+		randomFloat := rand.Float64()
+
+		s := strconv.FormatFloat(randomFloat, 'f', -1, 64)
+
+		var cost types.FIL
+		_ = cost.UnmarshalText([]byte(s))
+
+		t.Log("cost value: ", cost)
+
+		ctx := context.Background()
+
+		_, err = proxy.Verify(ctx, proxyCfg.Bank, proxyCfg.Route, proxyCfg.Wallet, res.Data.ID, cost)
+		if err != nil {
+			t.Errorf("failed to verify: %v", err)
+		}
+
+		if err := proxy.Redeem(ctx, &bankEndpoint, proxyCfg.Wallet, res.Data.ID, cost); err != nil {
+			t.Errorf("failed to redeem: %v", err)
+		}
+
+		balanceOpts := cli.BalanceOptions{
+			BankAddress: test.address,
+		}
+
+		if err := cl.Validate.Struct(balanceOpts); err != nil {
+			t.Errorf("failed to validate: %v", err)
+		}
+
+		if _, err := cli.Balance(ki, cfg.Wallet.Address, cfg.Route.Balance, balanceOpts); err != nil {
+			t.Errorf("failed to get balance: %v", err)
+		}
+
+		assert.Equal(t, res.Status, "success")
 	}
 
 	if err := setup.RunMigrations("DOWN", migr); err != nil {

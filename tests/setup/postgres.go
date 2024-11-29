@@ -9,13 +9,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	dockertest "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
+	"github.com/subvisual/fidl/bank"
 	"github.com/subvisual/fidl/bank/postgres"
 )
 
-func PostgresContainer(db *postgres.DB) (*dockertest.Pool, *dockertest.Resource, string, error) {
+func PostgresContainer(db *postgres.DB, cfg *bank.Config) (*dockertest.Pool, *dockertest.Resource, error) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("could not connect to docker: %w", err)
+		return nil, nil, fmt.Errorf("could not connect to docker: %w", err)
 	}
 
 	user := "user"
@@ -40,32 +41,34 @@ func PostgresContainer(db *postgres.DB) (*dockertest.Pool, *dockertest.Resource,
 	})
 
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("could not start resource: %w", err)
+		return nil, nil, fmt.Errorf("could not start resource: %w", err)
 	}
 
 	if err := resource.Expire(30); err != nil {
-		return nil, nil, "", fmt.Errorf("could not set expiration to resource: %w", err)
+		return nil, nil, fmt.Errorf("could not set expiration to resource: %w", err)
 	}
 
 	var dbx *sqlx.DB
 	hostAndPort := resource.GetHostPort("5432/tcp")
 	databaseURL := fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=disable", repo, user, pwd, hostAndPort, dbname)
 
+	cfg.Db.Dsn = databaseURL
+
 	pool.MaxWait = 30 * time.Second
 	if err = pool.Retry(func() error {
-		dbx, err = sqlx.Open(repo, databaseURL)
+		dbx, err = sqlx.Open(repo, cfg.Db.Dsn)
 		if err != nil {
 			return fmt.Errorf("could not connect to database: %w", err)
 		}
 
 		return dbx.Ping()
 	}); err != nil {
-		return nil, nil, "", fmt.Errorf("could not connect to docker: %w", err)
+		return nil, nil, fmt.Errorf("could not connect to docker: %w", err)
 	}
 
 	db.DB = dbx
 
-	return pool, resource, "", nil
+	return pool, resource, nil
 }
 
 func RunMigrations(kind string, migr *migrate.Migrate) error {

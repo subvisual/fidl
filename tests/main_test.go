@@ -13,63 +13,33 @@ import (
 	mpostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/subvisual/fidl/bank"
 	"github.com/subvisual/fidl/bank/postgres"
-	fhttp "github.com/subvisual/fidl/http"
 	"github.com/subvisual/fidl/tests/setup"
-	"github.com/subvisual/fidl/types"
 )
 
 // nolint:gochecknoglobals
 var (
-	db           *postgres.DB
-	migr         *migrate.Migrate
-	localhost    = "localhost"
-	bankPort     = 8090
-	upstreamPort = 7777
-	proxyPrice   = "1 FIL"
+	db         *postgres.DB
+	migr       *migrate.Migrate
+	bankFqdn   string
+	bankPort   int
+	proxyPrice = "1 FIL"
 )
 
 func TestMain(m *testing.M) {
+	cfgFilePath := "../etc/bank.ini.example"
+	cfg := bank.LoadConfiguration(cfgFilePath)
+
+	bankFqdn = cfg.HTTP.Fqdn
+	bankPort = cfg.HTTP.Port
+
 	db = &postgres.DB{}
-	pool, resource, dbDSN, err := setup.PostgresContainer(db)
+	pool, resource, err := setup.PostgresContainer(db, &cfg)
 	if err != nil {
 		log.Fatalf("could not setup docker: %v", err)
 	}
 
-	bankAddress, _ := types.NewAddressFromString("f1qbvbikeuozxgoop5bc7nkcokapslxxdy2gucfqa")
-	escrowAddress, _ := types.NewAddressFromString("f1bpzzps6xxcxubq6idqravdcisdpzqemnahxdeoq")
-
-	cfg := bank.Config{
-		Env: "testing",
-		Logger: fhttp.Logger{
-			Path:  "logs/bank.log",
-			Level: "FATAL",
-		},
-		Db: bank.Db{
-			Dsn:          dbDSN,
-			MaxOpenConns: 25,
-			MaxIdleConns: 25,
-			MaxIdleTime:  "15m",
-		},
-		HTTP: fhttp.HTTP{
-			Addr:            "127.0.0.1",
-			Fqdn:            localhost,
-			Port:            bankPort,
-			ListenPort:      bankPort,
-			ReadTimeout:     15,
-			WriteTimeout:    15,
-			ShutdownTimeout: 10,
-			TLS:             false,
-		},
-		Wallet: bank.Wallet{
-			Address: bankAddress,
-		},
-		Escrow: bank.Escrow{
-			Address:  escrowAddress,
-			Deadline: "24h",
-		},
-	}
-
 	go func() {
+		cfg.Logger.Level = "FATAL"
 		setup.Server(cfg, db)
 	}()
 
