@@ -18,11 +18,13 @@ import (
 
 // nolint:gochecknoglobals
 var (
-	db         *postgres.DB
-	migr       *migrate.Migrate
-	bankFqdn   string
-	bankPort   int
-	proxyPrice = "1 FIL"
+	db                *postgres.DB
+	migr              *migrate.Migrate
+	bankFqdn          string
+	bankPort          int
+	proxyPrice        = "1 FIL"
+	bankWalletAddress string
+	containerDeadline uint = 3000
 )
 
 func TestMain(m *testing.M) {
@@ -31,9 +33,10 @@ func TestMain(m *testing.M) {
 
 	bankFqdn = cfg.HTTP.Fqdn
 	bankPort = cfg.HTTP.Port
+	bankWalletAddress = cfg.Wallet.Address.String()
 
 	db = &postgres.DB{}
-	pool, resource, err := setup.PostgresContainer(db, &cfg)
+	pool, resource, err := setup.PostgresContainer(db, &cfg, containerDeadline)
 	if err != nil {
 		log.Fatalf("could not setup docker: %v", err)
 	}

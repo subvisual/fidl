@@ -14,9 +14,9 @@ func CLI() (cli.Config, cli.CLI, types.KeyInfo, error) {
 
 	cfg.Wallet.Path = "../" + cfg.Wallet.Path
 
-	cl := cli.CLI{Validate: validator.New()}
+	cl := cli.NewCLI(validator.New())
 
-	if err := cli.RegisterValidators(cl); err != nil {
+	if err := cl.RegisterValidators(); err != nil {
 		return cli.Config{}, cli.CLI{}, types.KeyInfo{}, fmt.Errorf("failed to register validators: %w", err)
 	}
 
