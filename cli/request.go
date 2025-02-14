@@ -14,8 +14,14 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte) (*request.Response, error) {
+func PostRequest(ctx context.Context, ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte) (*request.Response, error) {
 	msg := append([]byte(time.Now().UTC().String()), body...)
+
+	_, sigType, err := types.ParseAddress(addr.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse wallet public address: %w", err)
+	}
+	ki.Type = sigType
 
 	sig, err := sign(ki, msg)
 	if err != nil {
@@ -35,7 +41,7 @@ func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route
 		AppendHeader("sig", hex.EncodeToString(sig)).
 		AppendHeader("pub", addr.String()).
 		AppendHeader("msg", hex.EncodeToString(msg)).
-		Post(context.Background())
+		Post(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
@@ -45,6 +51,12 @@ func PostRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route
 
 func GetRequest(ki types.KeyInfo, addr types.Address, bankAddress string, route string, body []byte) (*request.Response, error) {
 	msg := append([]byte(time.Now().UTC().String()), body...)
+
+	_, sigType, err := types.ParseAddress(addr.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse wallet public address: %w", err)
+	}
+	ki.Type = sigType
 
 	sig, err := sign(ki, msg)
 	if err != nil {
@@ -118,7 +130,7 @@ func sign(ki types.KeyInfo, body []byte) ([]byte, error) {
 
 	out, err := sig.MarshalBinary()
 	if err != nil {
-		return nil, fmt.Errorf("filed to marshal signature: %w", err)
+		return nil, fmt.Errorf("failed to marshal signature: %w", err)
 	}
 
 	return out, nil

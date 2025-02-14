@@ -19,9 +19,9 @@ func main() {
 	fidl.Version = version
 	fidl.Commit = commit
 
-	cl := cli.CLI{Validate: validator.New()}
+	cl := cli.NewCLI(validator.New())
 
-	if err := cli.RegisterValidators(cl); err != nil {
+	if err := cl.RegisterValidators(); err != nil {
 		log.Fatalf("Failed to register validators: %v", err)
 	}
 

@@ -20,6 +20,11 @@ func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
+			opts.ProxyAddress, err = types.NewAddressFromString(opts.ProxyInput)
+			if err != nil {
+				return fmt.Errorf("failed to parse proxy address: %w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 
@@ -38,7 +43,7 @@ func newAuthorizeCommand(cl cli.CLI) *cobra.Command {
 	}
 
 	authorizeCmd.Flags().StringVarP(&opts.BankAddress, "bank", "b", "", "The bank address")
-	authorizeCmd.Flags().StringVarP(&opts.Proxy, "proxy", "p", "", "The proxy wallet address")
+	authorizeCmd.Flags().StringVarP(&opts.ProxyInput, "proxy", "p", "", "The proxy wallet address")
 	cobra.CheckErr(authorizeCmd.MarkFlagRequired("bank"))
 	cobra.CheckErr(authorizeCmd.MarkFlagRequired("proxy"))
 

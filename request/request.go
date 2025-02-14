@@ -62,8 +62,11 @@ func (r *Request) AppendURLQuery(key string, value string) *Request {
 }
 
 func (r *Request) Post(ctx context.Context) (*Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.endpoint.String(), r.body)
 	if err != nil {
@@ -94,8 +97,11 @@ func (r *Request) Post(ctx context.Context) (*Response, error) {
 }
 
 func (r *Request) Get(ctx context.Context) (*Response, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.endpoint.String(), r.body)
 	if err != nil {

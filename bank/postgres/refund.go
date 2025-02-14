@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
 	"github.com/subvisual/fidl/types"
@@ -43,8 +44,8 @@ func (s BankService) Refund(address string) (bank.RefundModel, error) {
 	// nolint:goconst
 	transactionQuery :=
 		`
-		INSERT INTO transactions (source, destination, value, status_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
@@ -76,7 +77,12 @@ func (s BankService) Refund(address string) (bank.RefundModel, error) {
 			return fmt.Errorf("failed to update balances: %w", err)
 		}
 
-		args = []any{s.cfg.EscrowAddress, s.cfg.WalletAddress, expiredSum.Int.String(), TransactionCompleted}
+		transactionID, err := uuid.NewV7()
+		if err != nil {
+			return fmt.Errorf("failed to generate v7 uuid: %w", err)
+		}
+
+		args = []any{transactionID.String(), s.cfg.EscrowAddress, s.cfg.WalletAddress, expiredSum.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during refund: %w", err)
 		}
