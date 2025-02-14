@@ -13,7 +13,7 @@ import (
 	"github.com/subvisual/fidl/bank/postgres"
 )
 
-func PostgresContainer(db *postgres.DB, cfg *bank.Config) (*dockertest.Pool, *dockertest.Resource, error) {
+func PostgresContainer(db *postgres.DB, cfg *bank.Config, deadline uint) (*dockertest.Pool, *dockertest.Resource, error) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not connect to docker: %w", err)
@@ -44,7 +44,7 @@ func PostgresContainer(db *postgres.DB, cfg *bank.Config) (*dockertest.Pool, *do
 		return nil, nil, fmt.Errorf("could not start resource: %w", err)
 	}
 
-	if err := resource.Expire(30); err != nil {
+	if err := resource.Expire(deadline); err != nil {
 		return nil, nil, fmt.Errorf("could not set expiration to resource: %w", err)
 	}
 

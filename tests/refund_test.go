@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -8,9 +9,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/cli"
 	"github.com/subvisual/fidl/proxy"
 	"github.com/subvisual/fidl/tests/setup"
+	"github.com/subvisual/fidl/types"
 )
 
 func TestRefund(t *testing.T) { // nolint:paralleltest
@@ -38,41 +41,80 @@ func TestRefund(t *testing.T) { // nolint:paralleltest
 		Host:   fmt.Sprintf("%s:%d", bankFqdn, bankPort),
 	}
 
+	// nolint:goconst
+	amount := "5 FIL"
+
+	var fil types.FIL
+	err = fil.UnmarshalJSON([]byte(amount))
+	if err != nil {
+		t.Fatalf("error unmarshalling amount data: %v", err)
+	}
+
+	bankEthAddr, _, err := types.ParseAddress(bankWalletAddress)
+	if err != nil {
+		t.Fatalf("failed to parse bank wallet public address: %v", err)
+	}
+
+	blockchainService, err := blockchain.NewService(&blockchain.Config{
+		RPCURL:                      cfg.Blockchain.RPCURL,
+		GasLimitMultiplier:          cfg.Blockchain.GasLimitMultiplier,
+		GasPriceMultiplier:          cfg.Blockchain.GasPriceMultiplier,
+		PriorityFeePerGasMultiplier: cfg.Blockchain.PriorityFeePerGasMultiplier,
+	}, ki.PrivateKey, 0)
+	if err != nil {
+		t.Fatalf("failed to create blockchain service: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	hash, err := blockchainService.Transfer(ctx, bankEthAddr, fil)
+	if err != nil {
+		t.Fatalf("failed to transfer funds: %v", err)
+	}
+
+	t.Logf("Transferring funds, transaction hash: %s", hash)
+
 	depositOpts := cli.DepositOptions{
-		Amount:      "5 FIL",
-		BankAddress: bankEndpoint.String(),
+		Amount:            amount,
+		BankAddress:       bankEndpoint.String(),
+		BankWalletAddress: bankWalletAddress,
+		FIL:               fil,
+		TransactionHash:   hash,
 	}
 
 	if err := cl.Validate.Struct(depositOpts); err != nil {
 		t.Errorf("failed to validate: %v", err)
 	}
 
-	res, err := cli.Deposit(ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
+	res, err := cli.Deposit(ctx, ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
 	if err != nil {
-		t.Errorf("failed to deposit: %v", err)
+		t.Fatalf("failed to deposit: %v", err)
 	}
 
 	assert.Equal(t, res.Status, "success")
 	assert.Equal(t, res.Data.FIL.String(), "5 FIL")
 
 	var tests = []struct {
-		address     string
-		destination string
-		expected    string
-		authorized  string
+		bankaddress  string
+		proxyinput   string
+		proxyaddress types.Address
+		expected     string
+		authorized   string
 	}{
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "4 FIL", proxyPrice},
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "3 FIL", proxyPrice},
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "2 FIL", proxyPrice},
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "1 FIL", proxyPrice},
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "0 FIL", proxyPrice},
-		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), "not have enough funds", ""},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "4 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "3 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "2 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "1 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "0 FIL", proxyPrice},
+		{bankEndpoint.String(), proxyCfg.Wallet.Address.String(), proxyCfg.Wallet.Address, "not have enough funds", ""},
 	}
 
 	for _, test := range tests {
 		authorizeOpts := cli.AuthorizeOptions{
-			BankAddress: test.address,
-			Proxy:       test.destination,
+			BankAddress:  test.bankaddress,
+			ProxyInput:   test.proxyinput,
+			ProxyAddress: test.proxyaddress,
 		}
 
 		if err := cl.Validate.Struct(authorizeOpts); err != nil {

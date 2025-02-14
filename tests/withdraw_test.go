@@ -1,14 +1,18 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/cli"
 	"github.com/subvisual/fidl/tests/setup"
+	"github.com/subvisual/fidl/types"
 )
 
 func TestWithdraw(t *testing.T) { // nolint:paralleltest
@@ -26,24 +30,61 @@ func TestWithdraw(t *testing.T) { // nolint:paralleltest
 		Host:   fmt.Sprintf("%s:%d", bankFqdn, bankPort),
 	}
 
+	// nolint:goconst
+	amount := "5 FIL"
+
+	var fil types.FIL
+	err = fil.UnmarshalJSON([]byte(amount))
+	if err != nil {
+		t.Fatalf("error unmarshalling amount data: %v", err)
+	}
+
+	bankEthAddr, _, err := types.ParseAddress(bankWalletAddress)
+	if err != nil {
+		t.Fatalf("failed to parse bank wallet public address: %v", err)
+	}
+
+	blockchainService, err := blockchain.NewService(&blockchain.Config{
+		RPCURL:                      cfg.Blockchain.RPCURL,
+		GasLimitMultiplier:          cfg.Blockchain.GasLimitMultiplier,
+		GasPriceMultiplier:          cfg.Blockchain.GasPriceMultiplier,
+		PriorityFeePerGasMultiplier: cfg.Blockchain.PriorityFeePerGasMultiplier,
+	}, ki.PrivateKey, 0)
+	if err != nil {
+		t.Fatalf("failed to create blockchain service: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	hash, err := blockchainService.Transfer(ctx, bankEthAddr, fil)
+	if err != nil {
+		t.Fatalf("failed to transfer funds: %v", err)
+	}
+
+	t.Logf("Transferring funds, transaction hash: %s", hash)
+
 	depositOpts := cli.DepositOptions{
-		Amount:      "5 FIL",
-		BankAddress: bankEndpoint.String(),
+		Amount:            amount,
+		BankAddress:       bankEndpoint.String(),
+		BankWalletAddress: bankWalletAddress,
+		FIL:               fil,
+		TransactionHash:   hash,
 	}
 
 	if err := cl.Validate.Struct(depositOpts); err != nil {
 		t.Errorf("failed to validate: %v", err)
 	}
 
-	res, err := cli.Deposit(ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
+	res, err := cli.Deposit(ctx, ki, cfg.Wallet.Address, cfg.Route.Deposit, depositOpts)
 	if err != nil {
-		t.Errorf("failed to deposit: %v", err)
+		t.Fatalf("failed to deposit: %v", err)
 	}
 
 	assert.Equal(t, res.Status, "success")
 	assert.Equal(t, res.Data.FIL.String(), "5 FIL")
 
-	destinationAddress := "f135aafnv6wnlderpanbbfwwc3zxnxzomsphqnnfq"
+	destinationAddress := cfg.Wallet.Address.String()
 
 	var tests = []struct {
 		address     string
