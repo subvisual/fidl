@@ -1,7 +1,5 @@
 # FIDL
 
-> Currently in development
-
 ## Table of Contents
 
 -   [Overview](#overview)
@@ -29,7 +27,7 @@ With the following available commands:
 
 -   `authorize -p <proxy_wallet_address> -b <bank_address>`
 -   `balance -b <bank_address>`
--   `deposit -a <amount> -b <bank_address>`
+-   `deposit -a <amount> -b <bank_address> -p <bank_wallet_address>`
 -   `refund -b <bank_address>`
 -   `withdraw -a <amount> -d <destination> -b <bank_address>`
 -   `banks -p <proxy_address>`
@@ -59,6 +57,17 @@ To run migrations:
 `migrate -path=./bank/postgres/migrations -database=$DSN up`
 
 -   `$DSN` should contain your database data source string
+
+### Makefile
+
+A makefile is available to easily deploy the database and run the migrations:
+
+-   `make db:create`: creates the database
+-   `make db:drop`: drops the database
+-   `make db:migrate:up`: runs the migrations
+-   `make db:migrate:down`: rolls back the migrations
+-   `make db:migrate:force`: force dirty database migrations for given version
+-   `make migration:create`: creates a new migration with specified name
 
 ## Proxy
 

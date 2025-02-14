@@ -5,7 +5,8 @@ import (
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/venus/pkg/crypto"
-	_ "github.com/filecoin-project/venus/pkg/crypto/secp" // to run init()
+	_ "github.com/filecoin-project/venus/pkg/crypto/delegated" // to run init()
+	_ "github.com/filecoin-project/venus/pkg/crypto/secp"      // to run init()
 )
 
 func Verify(sig *crypto.Signature, addr address.Address, msg []byte) error {
