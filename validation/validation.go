@@ -3,6 +3,7 @@ package validation
 import (
 	"errors"
 
+	vtypes "github.com/filecoin-project/venus/venus-shared/actors/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/subvisual/fidl/types"
 	"go.uber.org/zap"
@@ -27,6 +28,22 @@ func IsFilecoinAddress(fl validator.FieldLevel) bool {
 	}
 
 	return true
+}
+
+func IsValidAddress(fl validator.FieldLevel) bool {
+	_, err := vtypes.ParseEthAddress(fl.Field().String())
+	if err == nil {
+		return true
+	}
+
+	filAddr, err := types.NewAddressFromString(fl.Field().String())
+	if err != nil {
+		return false
+	}
+
+	_, err = vtypes.EthAddressFromFilecoinAddress(*filAddr.Address)
+
+	return err == nil
 }
 
 func IsValidFIL(fl validator.FieldLevel) bool {

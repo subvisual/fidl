@@ -1,11 +1,8 @@
 package types
 
 import (
-	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/filecoin-project/go-state-types/crypto"
 )
@@ -56,25 +53,4 @@ func (ki *KeyInfo) UnmarshalJSON(value []byte) error {
 	}
 
 	return nil
-}
-
-func ReadWallet(wallet Wallet) (KeyInfo, error) {
-	var keyInfo KeyInfo
-
-	pkIn, err := os.ReadFile(wallet.Path)
-	if err != nil {
-		return KeyInfo{}, fmt.Errorf("failed to load private key: %w", err)
-	}
-
-	pkIn = bytes.TrimRight(pkIn, "\n")
-	pkOut := make([]byte, hex.DecodedLen(len(pkIn)))
-	if _, err := hex.Decode(pkOut, pkIn); err != nil {
-		return KeyInfo{}, fmt.Errorf("failed to decode private key: %w", err)
-	}
-
-	if err := json.Unmarshal(pkOut, &keyInfo); err != nil {
-		return KeyInfo{}, fmt.Errorf("failed to convert private key: %w", err)
-	}
-
-	return keyInfo, nil
 }

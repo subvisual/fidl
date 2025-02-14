@@ -23,7 +23,7 @@ upstream="http://localhost:7777"
 
 [wallet]
 path="./etc/proxy.key.example"
-address="f15nrbm4j7ptwl5tdbivasxnqypceh3cb4htpwlta"
+address="t410f000000000000000000000000000000000000002"
 
 [bank.one]
 url="http://localhost:8090"

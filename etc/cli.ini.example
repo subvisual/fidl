@@ -11,4 +11,10 @@ authorize="/api/v1/authorize"
 
 [wallet]
 path="./etc/cli.key.example"
-address="f135aafnv6wnlderpanbbfwwc3zxnxzomsphqnnfq"
+address="t410f000000000000000000000000000000000000001"
+
+[blockchain]
+rpc-url="https://api.calibration.node.glif.io/rpc/v1"
+gas-limit-multiplier=1.25
+gas-price-multiplier=1.5
+priority-fee-per-gas-multiplier=1.5
