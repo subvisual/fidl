@@ -11,7 +11,7 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (bank.RedeemModel, error) {
+func (s BankService) Redeem(address string, id uuid.UUID, amount types.FIL) (bank.RedeemModel, error) {
 	var spBalance types.FIL
 	var cliBalance types.FIL
 	var cliEscrow types.FIL
@@ -40,8 +40,8 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 	// nolint:goconst
 	transactionQuery :=
 		`
-		INSERT INTO transactions (source, destination, value, status_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		`
 
 	deleteAuthQuery :=
@@ -97,7 +97,7 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 
 		var auth Authorization
 
-		args := []any{uuid, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline), AuthorizationLocked}
+		args := []any{id, address, amount.Int.String(), time.Now().UTC().Add(-cfgDeadline), AuthorizationLocked}
 		if err := tx.Get(&auth, verifyAuthQuery, args...); err != nil {
 			return bank.ErrAuthNotFound
 		}
@@ -107,7 +107,12 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 			return fmt.Errorf("failed to deposit balance to sp: %w", err)
 		}
 
-		args = []any{s.cfg.EscrowAddress, s.cfg.WalletAddress, amount.Int.String(), TransactionCompleted}
+		transactionID, err := uuid.NewV7()
+		if err != nil {
+			return fmt.Errorf("failed to generate v7 uuid: %w", err)
+		}
+
+		args = []any{transactionID.String(), s.cfg.EscrowAddress, s.cfg.WalletAddress, amount.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during sp deposit: %w", err)
 		}
@@ -120,13 +125,18 @@ func (s BankService) Redeem(address string, uuid uuid.UUID, amount types.FIL) (b
 				return fmt.Errorf("failed to deposit balance to cli: %w", err)
 			}
 
-			args = []any{s.cfg.EscrowAddress, s.cfg.WalletAddress, excess.Int.String(), TransactionCompleted}
+			transactionID, err := uuid.NewV7()
+			if err != nil {
+				return fmt.Errorf("failed to generate v7 uuid: %w", err)
+			}
+
+			args = []any{transactionID.String(), s.cfg.EscrowAddress, s.cfg.WalletAddress, excess.Int.String(), TransactionCompleted}
 			if _, err := tx.Exec(transactionQuery, args...); err != nil {
 				return fmt.Errorf("failed to register transaction during cli deposit: %w", err)
 			}
 		}
 
-		if _, err := tx.Exec(deleteAuthQuery, uuid); err != nil {
+		if _, err := tx.Exec(deleteAuthQuery, id); err != nil {
 			return fmt.Errorf("failed to delete authorization during redeem: %w", err)
 		}
 

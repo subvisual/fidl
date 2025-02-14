@@ -6,46 +6,60 @@ import (
 )
 
 type AuthorizeOptions struct {
-	BankAddress string `json:"bankAddress"`
-	Proxy       string `validate:"is-filecoin-address" json:"proxy"`
+	BankAddress  string `validate:"url" json:"bankAddress"`
+	ProxyInput   string `validate:"is-filecoin-address" json:"proxy"`
+	ProxyAddress types.Address
 }
 
 type WithdrawOptions struct {
 	Amount      string `json:"amount"`
-	Destination string `validate:"is-filecoin-address" json:"dst"`
-	BankAddress string `json:"bankAddress"`
+	Destination string `validate:"is-valid-address" json:"dst"`
+	BankAddress string `validate:"url" json:"bankAddress"`
 }
 
 type DepositOptions struct {
-	Amount      string `json:"amount"`
-	BankAddress string `json:"bankAddress"`
+	Amount            string `json:"amount"`
+	BankAddress       string `validate:"url" json:"bankAddress"`
+	BankWalletAddress string `validate:"is-valid-address" json:"bankWalletAddress"`
+	FIL               types.FIL
+	TransactionHash   string
 }
 
 type BalanceOptions struct {
-	BankAddress string `json:"bankAddress"`
+	BankAddress string `validate:"url" json:"bankAddress"`
 }
 
 type RefundOptions struct {
-	BankAddress string `json:"bankAddress"`
+	BankAddress string `validate:"url" json:"bankAddress"`
 }
 
 type RetrievalOptions struct {
-	ProxyAddress  string `json:"proxyAddress"`
+	ProxyAddress  string `validate:"url" json:"proxyAddress"`
 	Piece         string `json:"piece"`
-	Authorization string `json:"authorization"`
+	Authorization string `validate:"uuid" json:"authorization"`
 }
 
 type BanksOptions struct {
-	ProxyAddress string `json:"proxyAddress"`
+	ProxyAddress string `validate:"url" json:"proxyAddress"`
 }
 
-type TransactionResponseData struct {
+type DepositResponseData struct {
 	FIL types.FIL `json:"fil"`
 }
 
-type TransactionResponse struct {
-	Status string                  `json:"status"`
-	Data   TransactionResponseData `json:"data"`
+type DepositResponse struct {
+	Status string              `json:"status"`
+	Data   DepositResponseData `json:"data"`
+}
+
+type WithdrawResponseData struct {
+	FIL  types.FIL `json:"fil"`
+	Hash string    `json:"hash"`
+}
+
+type WithdrawResponse struct {
+	Status string               `json:"status"`
+	Data   WithdrawResponseData `json:"data"`
 }
 
 type BalanceResponseData struct {

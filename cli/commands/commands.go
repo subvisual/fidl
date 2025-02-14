@@ -5,7 +5,7 @@ import (
 	"github.com/subvisual/fidl/cli"
 )
 
-func Parse(cli cli.CLI) *cobra.Command {
+func Parse(cl cli.CLI) *cobra.Command {
 	var cfgPath string
 	rootCmd := &cobra.Command{
 		Use:   "fidl",
@@ -16,13 +16,13 @@ func Parse(cli cli.CLI) *cobra.Command {
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.PersistentFlags().StringVar(&cfgPath, "config", "./cli.ini", "Path to the configuration file")
 
-	rootCmd.AddCommand(newDepositCommand())
-	rootCmd.AddCommand(newWithdrawCommand(cli))
-	rootCmd.AddCommand(newBalanceCommand())
-	rootCmd.AddCommand(newBanksCommand())
-	rootCmd.AddCommand(newAuthorizeCommand(cli))
-	rootCmd.AddCommand(newRefundCommand())
-	rootCmd.AddCommand(newRetrievalCommand())
+	rootCmd.AddCommand(newDepositCommand(cl))
+	rootCmd.AddCommand(newWithdrawCommand(cl))
+	rootCmd.AddCommand(newBalanceCommand(cl))
+	rootCmd.AddCommand(newBanksCommand(cl))
+	rootCmd.AddCommand(newAuthorizeCommand(cl))
+	rootCmd.AddCommand(newRefundCommand(cl))
+	rootCmd.AddCommand(newRetrievalCommand(cl))
 
 	return rootCmd
 }

@@ -8,7 +8,20 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Withdraw(address string, destination string, amount types.FIL) (types.FIL, error) {
+func (s BankService) CanWithdraw(address string, amount types.FIL) (bool, error) {
+	balance, _, err := s.Balance(address)
+	if err != nil {
+		return false, err
+	}
+
+	if amount.Cmp(balance.Int) == 1 {
+		return false, bank.ErrInsufficientFunds
+	}
+
+	return true, nil
+}
+
+func (s BankService) Withdraw(address string, destination string, amount types.FIL, transactionHash string) (types.FIL, error) {
 	var balance types.FIL
 
 	if destination == s.cfg.WalletAddress {
@@ -18,8 +31,8 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 	// nolint:goconst
 	transactionQuery :=
 		`
-		INSERT INTO transactions (source, destination, value, status_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		`
 
 	withdrawQuery :=
@@ -63,7 +76,7 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, destination, amount.Int.String(), TransactionCompleted}
+		args = []any{transactionHash, s.cfg.WalletAddress, destination, amount.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
 		}

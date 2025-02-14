@@ -42,8 +42,8 @@ func (s BankService) Authorize(address string, proxy string) (bank.AuthModel, er
 	// nolint:goconst
 	transactionQuery :=
 		`
-		INSERT INTO transactions (source, destination, value, status_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
@@ -75,6 +75,11 @@ func (s BankService) Authorize(address string, proxy string) (bank.AuthModel, er
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
 		}
 
+		transactionID, err := uuid.NewV7()
+		if err != nil {
+			return fmt.Errorf("failed to generate v7 uuid: %w", err)
+		}
+
 		uuid, err := uuid.NewV7()
 		if err != nil {
 			return fmt.Errorf("failed to generate v7 uuid: %w", err)
@@ -85,7 +90,7 @@ func (s BankService) Authorize(address string, proxy string) (bank.AuthModel, er
 			return fmt.Errorf("failed to deposit to escrow: %w", err)
 		}
 
-		args = []any{s.cfg.WalletAddress, s.cfg.EscrowAddress, cost.Int.String(), TransactionCompleted}
+		args = []any{transactionID.String(), s.cfg.WalletAddress, s.cfg.EscrowAddress, cost.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during authorize: %w", err)
 		}

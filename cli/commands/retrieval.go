@@ -7,17 +7,22 @@ import (
 	"github.com/subvisual/fidl/cli"
 )
 
-func newRetrievalCommand() *cobra.Command {
+func newRetrievalCommand(cl cli.CLI) *cobra.Command {
 	opts := cli.RetrievalOptions{}
 	retrievalCmd := &cobra.Command{
 		Use:   "retrieval",
 		Short: "To retrieval a file from a storage provider.",
 		Long:  `This command retrieval a file from a storage provider. To do so, the client must have some FIL in a bank trusted by the storage provider.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			err := cl.Validate.Struct(opts)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 
-			err := cli.Retrieval(cfg.Route.Retrieval, opts)
+			err = cli.Retrieval(cfg.Route.Retrieval, opts)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}

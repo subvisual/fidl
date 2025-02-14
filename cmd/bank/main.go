@@ -13,7 +13,9 @@ import (
 	"github.com/subvisual/fidl"
 	"github.com/subvisual/fidl/bank"
 	"github.com/subvisual/fidl/bank/postgres"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/http"
+	"github.com/subvisual/fidl/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -86,12 +88,33 @@ func main() {
 		Env: cfg.Env,
 	})
 
-	bankCtx := bank.Server{Server: httpServer}
+	bankCtx := bank.Server{
+		Server: httpServer,
+
+		CustomReadTimeout: time.Duration(cfg.HTTP.WriteTimeout) * time.Second,
+	}
 	bankCtx.BankService = postgres.NewBankService(db, &postgres.BankConfig{
 		WalletAddress:  cfg.Wallet.Address.String(),
 		EscrowAddress:  cfg.Escrow.Address.String(),
 		EscrowDeadline: cfg.Escrow.Deadline,
 	})
+
+	ki, err := types.ReadWallet(cfg.Wallet)
+	if err != nil {
+		logger.Fatal("failed to read wallet", zap.Error(err))
+	}
+
+	blockchainService, err := blockchain.NewService(&blockchain.Config{
+		RPCURL:                      cfg.Blockchain.RPCURL,
+		GasLimitMultiplier:          cfg.Blockchain.GasLimitMultiplier,
+		GasPriceMultiplier:          cfg.Blockchain.GasPriceMultiplier,
+		PriorityFeePerGasMultiplier: cfg.Blockchain.PriorityFeePerGasMultiplier,
+		VerifyInterval:              cfg.Blockchain.VerifyInterval,
+	}, ki.PrivateKey, time.Duration(cfg.HTTP.WriteTimeout)*time.Second)
+	if err != nil {
+		logger.Fatal("failed to create blockchain service", zap.Error(err))
+	}
+	bankCtx.BlockChainService = blockchainService
 	bankCtx.RegisterValidators()
 
 	httpServer.Log = logger

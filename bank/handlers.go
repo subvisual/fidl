@@ -1,9 +1,11 @@
 package bank
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/types"
 )
 
@@ -12,7 +14,7 @@ type envelope map[string]any
 func (s *Server) Routes(r chi.Router) {
 	r.Route("/", func(r chi.Router) {
 		r.With(AuthenticationCtx()).Post("/register", s.handleRegisterProxy)
-		r.With(AuthenticationCtx()).Post("/deposit", s.handleDeposit)
+		r.With(AuthenticationCtx()).With(ReadTimeoutCtx(s.CustomReadTimeout)).Post("/deposit", s.handleDeposit)
 		r.With(AuthenticationCtx()).Post("/withdraw", s.handleWithdraw)
 		r.With(AuthenticationCtx()).Get("/balance", s.handleBalance)
 		r.With(AuthenticationCtx()).Post("/authorize", s.handleAuthorize)
@@ -68,7 +70,24 @@ func (s *Server) handleDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fil, err := s.BankService.Deposit(address.String(), params.Amount)
+	valid, err := s.BankService.ValidateBlockchainTransaction(params.TransactionHash)
+	if !valid || err != nil {
+		s.JSON(w, r, http.StatusConflict, envelope{"message": err.Error()})
+		return
+	}
+
+	// nolint:contextcheck
+	err = s.BlockChainService.VerifyTransaction(context.Background(), blockchain.VerifyTransactionOptions{
+		Hash:  params.TransactionHash,
+		From:  address.String(),
+		Value: params.Amount,
+	})
+	if err != nil {
+		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
+		return
+	}
+
+	fil, err := s.BankService.Deposit(address.String(), params.Amount, params.TransactionHash)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return
@@ -96,13 +115,36 @@ func (s *Server) handleWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fil, err := s.BankService.Withdraw(address.String(), params.Destination, params.Amount)
+	ethAddr, _, err := types.ParseAddress(params.Destination)
+	if err != nil {
+		s.JSON(w, r, http.StatusBadRequest, envelope{"message": err.Error()})
+		return
+	}
+
+	canWithdraw, err := s.BankService.CanWithdraw(address.String(), params.Amount)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	s.JSON(w, r, http.StatusOK, envelope{"fil": fil})
+	if !canWithdraw {
+		s.JSON(w, r, http.StatusBadRequest, envelope{"message": "insufficient funds"})
+		return
+	}
+
+	hash, err := s.BlockChainService.Transfer(r.Context(), ethAddr, params.Amount)
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	fil, err := s.BankService.Withdraw(address.String(), params.Destination, params.Amount, hash)
+	if err != nil {
+		s.JSON(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	s.JSON(w, r, http.StatusOK, envelope{"fil": fil, "hash": hash})
 }
 
 func (s *Server) handleBalance(w http.ResponseWriter, r *http.Request) {

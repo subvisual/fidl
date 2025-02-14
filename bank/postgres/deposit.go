@@ -8,7 +8,7 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error) {
+func (s BankService) Deposit(address string, amount types.FIL, transactionHash string) (types.FIL, error) {
 	var balance types.FIL
 
 	insertAccountQuery :=
@@ -32,8 +32,8 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 	// nolint:goconst
 	transactionQuery :=
 		`
-		INSERT INTO transactions (source, destination, value, status_id)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
+		VALUES ($1, $2, $3, $4, $5)
 		`
 
 	err := Transaction(s.db, func(tx fidl.Queryable) error {
@@ -56,7 +56,7 @@ func (s BankService) Deposit(address string, amount types.FIL) (types.FIL, error
 			return fmt.Errorf("failed to deposit balance: %w", err)
 		}
 
-		args = []any{address, s.cfg.WalletAddress, amount.Int.String(), TransactionCompleted}
+		args = []any{transactionHash, address, s.cfg.WalletAddress, amount.Int.String(), TransactionCompleted}
 		if _, err := tx.Exec(transactionQuery, args...); err != nil {
 			return fmt.Errorf("failed to register transaction during deposit: %w", err)
 		}

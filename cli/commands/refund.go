@@ -8,13 +8,18 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func newRefundCommand() *cobra.Command {
+func newRefundCommand(cl cli.CLI) *cobra.Command {
 	opts := cli.RefundOptions{}
 	refundCmd := &cobra.Command{
 		Use:   "refund",
 		Short: "To refund FIL from the client's bank escrow.",
 		Long:  `This command transfers all the client's funds in escrow in a given bank, to the client's balance.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			err := cl.Validate.Struct(opts)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 

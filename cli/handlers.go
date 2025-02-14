@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,13 +16,13 @@ func Authorize(ki types.KeyInfo, addr types.Address, route string, options Autho
 	authorizeResponse := AuthorizeResponse{}
 
 	body, err := json.Marshal(map[string]any{
-		"proxy": options.Proxy,
+		"proxy": options.ProxyAddress.String(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
+	resp, err := PostRequest(context.Background(), ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
@@ -97,23 +98,18 @@ func Banks(route string, options BanksOptions) (*BanksResponse, error) {
 	return &banksResponse, nil
 }
 
-func Deposit(ki types.KeyInfo, addr types.Address, route string, options DepositOptions) (*TransactionResponse, error) {
-	var b types.FIL // nolint:varnamelen
-	depositResponse := TransactionResponse{}
-
-	err := b.UnmarshalJSON([]byte(options.Amount))
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling amount data: %w", err)
-	}
+func Deposit(ctx context.Context, ki types.KeyInfo, addr types.Address, route string, options DepositOptions) (*DepositResponse, error) {
+	depositResponse := DepositResponse{}
 
 	body, err := json.Marshal(map[string]any{
-		"amount": b,
+		"amount": options.FIL,
+		"hash":   options.TransactionHash,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
+	resp, err := PostRequest(ctx, ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +125,8 @@ func Deposit(ki types.KeyInfo, addr types.Address, route string, options Deposit
 		return nil, fmt.Errorf("wallet not found")
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("the wallet address and signature do not match")
+	case http.StatusConflict:
+		return nil, fmt.Errorf("invalid transaction")
 	default:
 		return nil, fmt.Errorf("something went wrong: %s\nMessage: %s", http.StatusText(resp.Status), resp.Body)
 	}
@@ -191,9 +189,9 @@ func Refund(ki types.KeyInfo, addr types.Address, route string, options RefundOp
 	return &refundResponse, nil
 }
 
-func Withdraw(ki types.KeyInfo, addr types.Address, route string, options WithdrawOptions) (*TransactionResponse, error) {
+func Withdraw(ki types.KeyInfo, addr types.Address, route string, options WithdrawOptions) (*WithdrawResponse, error) {
 	var b types.FIL // nolint:varnamelen
-	withdrawResponse := TransactionResponse{}
+	withdrawResponse := WithdrawResponse{}
 
 	err := b.UnmarshalJSON([]byte(options.Amount))
 	if err != nil {
@@ -208,7 +206,7 @@ func Withdraw(ki types.KeyInfo, addr types.Address, route string, options Withdr
 		return nil, fmt.Errorf("failed payload marshaling: %w", err)
 	}
 
-	resp, err := PostRequest(ki, addr, options.BankAddress, route, body)
+	resp, err := PostRequest(context.Background(), ki, addr, options.BankAddress, route, body)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +218,7 @@ func Withdraw(ki types.KeyInfo, addr types.Address, route string, options Withdr
 			return nil, fmt.Errorf("error decoding the response body: %w", err)
 		}
 		fmt.Println("Withdraw successful, your current bank balance is:", withdrawResponse.Data.FIL) // nolint:forbidigo
+		fmt.Println("Transaction hash is:", withdrawResponse.Data.Hash)                              // nolint:forbidigo
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("wallet not found")
 	case http.StatusForbidden:

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/http"
 	"github.com/subvisual/fidl/types"
 )
@@ -16,22 +17,19 @@ type Db struct {
 	MaxIdleTime  string `toml:"max-idle-time"`
 }
 
-type Wallet struct {
-	Address types.Address `toml:"address"`
-}
-
 type Escrow struct {
 	Address  types.Address `toml:"address"`
 	Deadline string        `toml:"deadline"`
 }
 
 type Config struct {
-	Env    string      `toml:"env"`
-	Logger http.Logger `toml:"logger"`
-	Db     Db          `toml:"database"`
-	HTTP   http.HTTP   `toml:"http"`
-	Wallet Wallet      `toml:"wallet"`
-	Escrow Escrow      `toml:"escrow"`
+	Env        string            `toml:"env"`
+	Logger     http.Logger       `toml:"logger"`
+	Db         Db                `toml:"database"`
+	HTTP       http.HTTP         `toml:"http"`
+	Wallet     types.Wallet      `toml:"wallet"`
+	Escrow     Escrow            `toml:"escrow"`
+	Blockchain blockchain.Config `toml:"blockchain"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {

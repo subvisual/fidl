@@ -8,13 +8,18 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func newBalanceCommand() *cobra.Command {
+func newBalanceCommand(cl cli.CLI) *cobra.Command {
 	opts := cli.BalanceOptions{}
 	balanceCmd := &cobra.Command{
 		Use:   "balance",
 		Short: "To check the client's account balance at a specified bank.",
 		Long:  `This command checks the client's account balance at a specified bank.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			err := cl.Validate.Struct(opts)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
 			cfgPath, _ := cmd.Flags().GetString("config")
 			cfg := cli.LoadConfiguration(cfgPath)
 

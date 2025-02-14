@@ -106,7 +106,6 @@ func (s *Server) RegisterMiddleWare(middlewares ...func(http.Handler) http.Handl
 	}))
 	s.router.Use(mw.NewZap(s.Log))
 	s.router.Use(middleware.Recoverer)
-	s.router.Use(middleware.Timeout(60 * time.Second))
 	s.router.Use(middlewares...)
 }
 

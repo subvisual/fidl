@@ -173,7 +173,13 @@ func sign(wallet types.Wallet, body []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read wallet: %w", err)
 	}
 
-	sig, err := crypto.Sign(ki.PrivateKey, types.SigTypeSecp256k1, body)
+	_, sigType, err := types.ParseAddress(wallet.Address.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse wallet public address: %w", err)
+	}
+	ki.Type = sigType
+
+	sig, err := crypto.Sign(ki.PrivateKey, ki.Type, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign: %w", err)
 	}

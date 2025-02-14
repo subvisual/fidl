@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/go-playground/validator/v10"
+	"github.com/subvisual/fidl/blockchain"
 	"github.com/subvisual/fidl/types"
 )
 
@@ -20,13 +20,10 @@ type Route struct {
 }
 
 type Config struct {
-	Env    string       `toml:"env"`
-	Route  Route        `toml:"route"`
-	Wallet types.Wallet `toml:"wallet"`
-}
-
-type CLI struct {
-	Validate *validator.Validate
+	Env        string            `toml:"env"`
+	Route      Route             `toml:"route"`
+	Wallet     types.Wallet      `toml:"wallet"`
+	Blockchain blockchain.Config `toml:"blockchain"`
 }
 
 func LoadConfiguration(cfgFilePath string) Config {
