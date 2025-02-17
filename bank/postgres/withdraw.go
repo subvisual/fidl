@@ -8,32 +8,34 @@ import (
 	"github.com/subvisual/fidl/types"
 )
 
-func (s BankService) CanWithdraw(address string, amount types.FIL) (bool, error) {
-	balance, _, err := s.Balance(address)
-	if err != nil {
-		return false, err
-	}
-
-	if amount.Cmp(balance.Int) == 1 {
-		return false, bank.ErrInsufficientFunds
-	}
-
-	return true, nil
-}
-
-func (s BankService) Withdraw(address string, destination string, amount types.FIL, transactionHash string) (types.FIL, error) {
-	var balance types.FIL
-
-	if destination == s.cfg.WalletAddress {
-		return types.FIL{}, bank.ErrOperationNotAllowed
-	}
-
-	// nolint:goconst
+func (s BankService) RegisterWithdrawTransaction(address string, destination string, amount types.FIL, transactionHash string) error {
 	transactionQuery :=
 		`
 		INSERT INTO transactions (transaction_id, source, destination, value, status_id)
 		VALUES ($1, $2, $3, $4, $5)
 		`
+
+	err := Transaction(s.db, func(tx fidl.Queryable) error {
+		args := []any{transactionHash, s.cfg.WalletAddress, destination, amount.Int.String(), TransactionCompleted}
+		if _, err := tx.Exec(transactionQuery, args...); err != nil {
+			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s BankService) Withdraw(address string, destination string, amount types.FIL) (types.FIL, error) {
+	var balance types.FIL
+
+	if destination == s.cfg.WalletAddress {
+		return types.FIL{}, bank.ErrOperationNotAllowed
+	}
 
 	withdrawQuery :=
 		`
@@ -74,11 +76,6 @@ func (s BankService) Withdraw(address string, destination string, amount types.F
 		args := []any{account.ID, amount.Int.String()}
 		if err := tx.QueryRow(withdrawQuery, args...).Scan(&balance); err != nil {
 			return fmt.Errorf("failed to execute withdraw balance: %w", err)
-		}
-
-		args = []any{transactionHash, s.cfg.WalletAddress, destination, amount.Int.String(), TransactionCompleted}
-		if _, err := tx.Exec(transactionQuery, args...); err != nil {
-			return fmt.Errorf("failed to register transaction during withdraw: %w", err)
 		}
 
 		if account.Type == Client && balance.Sign() == 0 && escrow.Sign() == 0 {
