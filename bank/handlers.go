@@ -121,14 +121,9 @@ func (s *Server) handleWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canWithdraw, err := s.BankService.CanWithdraw(address.String(), params.Amount)
+	fil, err := s.BankService.Withdraw(address.String(), params.Destination, params.Amount)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	if !canWithdraw {
-		s.JSON(w, r, http.StatusBadRequest, envelope{"message": "insufficient funds"})
 		return
 	}
 
@@ -138,7 +133,7 @@ func (s *Server) handleWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fil, err := s.BankService.Withdraw(address.String(), params.Destination, params.Amount, hash)
+	err = s.BankService.RegisterWithdrawTransaction(address.String(), params.Destination, params.Amount, hash)
 	if err != nil {
 		s.JSON(w, r, http.StatusInternalServerError, err)
 		return

@@ -69,8 +69,8 @@ type Service interface {
 	RegisterProxy(spid string, source string, price types.FIL) error
 	ValidateBlockchainTransaction(hash string) (bool, error)
 	Deposit(address string, price types.FIL, transactionHash string) (types.FIL, error)
-	CanWithdraw(address string, amount types.FIL) (bool, error)
-	Withdraw(address string, destination string, amount types.FIL, transactionHash string) (types.FIL, error)
+	Withdraw(address string, destination string, amount types.FIL) (types.FIL, error)
+	RegisterWithdrawTransaction(address string, destination string, amount types.FIL, transactionHash string) error
 	Balance(address string) (types.FIL, types.FIL, error)
 	Authorize(address string, proxy string) (AuthModel, error)
 	Refund(address string) (RefundModel, error)
